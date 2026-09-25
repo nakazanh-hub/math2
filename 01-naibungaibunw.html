@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数直線 内分点・外分点 トレーナー</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap');
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .arc-line {
+            stroke-dasharray: 600;
+            stroke-dashoffset: 600;
+            animation: dash 0.8s ease-out forwards;
+        }
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid me-1 fa-ruler-horizontal text-yellow-300 text-2xl"></i>
+                <h1 class="font-bold text-lg sm:text-xl tracking-wide">内分点・外分点マスター</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="user-settings-btn" class="text-xs sm:text-sm bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-full transition flex items-center gap-1 border border-indigo-400">
+                    <i class="fa-solid fa-user-gear"></i> <span id="user-display-name">初期設定</span>
+                </button>
+                <button id="help-btn" class="text-xs sm:text-sm bg-indigo-500 hover:bg-indigo-700 px-3 py-1.5 rounded-full transition flex items-center gap-1">
+                    <i class="fa-solid fa-circle-question"></i> 解き方
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-grow flex flex-col gap-6">
+
+        <!-- Scoreboard & Settings -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 text-center">
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">正解数</div>
+                <div id="score-correct" class="text-2xl font-black text-indigo-600">0 / 0</div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">正解率</div>
+                <div id="score-accuracy" class="text-2xl font-black text-emerald-600">0%</div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">連続正解</div>
+                <div id="score-streak" class="text-2xl font-black text-amber-500">0 🔥</div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl flex flex-col justify-center items-center">
+                <label for="mode-select" class="text-xs text-slate-500 font-bold mb-1">出題モード</label>
+                <select id="mode-select" class="text-xs font-bold bg-white border border-slate-300 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-400">
+                    <option value="internal" selected>① 内分点のみ (基本)</option>
+                    <option value="external">② 外分点のみ</option>
+                    <option value="mixed">③ ミックス (発展)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Question Box -->
+        <div class="bg-white p-6 rounded-3xl shadow-md border border-indigo-100 flex flex-col items-center relative overflow-hidden">
+            <!-- Beginner Guidance Message -->
+            <div class="w-full bg-indigo-50 border border-indigo-100 rounded-2xl p-3 mb-4 text-center text-xs sm:text-sm text-indigo-800 font-medium flex items-center justify-center gap-2">
+                <i class="fa-solid fa-lightbulb text-amber-500 text-base"></i>
+                <span>まずは<b>「内分点」</b>から練習！全5問解くと自動で成績が記録されます。</span>
+            </div>
+
+            <div id="question-badge" class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full mb-3">
+                第 1 / 5 問
+            </div>
+
+            <!-- Question Text -->
+            <div id="question-text" class="text-lg sm:text-2xl font-extrabold text-center text-slate-800 my-2 min-h-[3rem] flex items-center justify-center">
+                読み込み中...
+            </div>
+
+            <!-- Instructions -->
+            <p class="text-xs sm:text-sm text-slate-500 mb-4 flex items-center gap-1">
+                <i class="fa-solid fa-hand-pointer text-indigo-400"></i> 数直線上の目盛りをタップして答えてください
+            </p>
+
+            <!-- Number Line Display Area -->
+            <div class="w-full overflow-x-auto py-6 px-2 flex justify-center items-center">
+                <div class="min-w-[650px] w-full max-w-[800px] relative">
+                    <svg id="number-line-svg" class="w-full h-48 select-none" viewBox="0 0 800 180">
+                        <!-- Dynamic content injected by JavaScript -->
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-4 mt-2 w-full max-w-xs">
+                <button id="reset-btn" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition shadow-sm active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-left"></i> やりなおす
+                </button>
+                <button id="submit-btn" disabled class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold rounded-xl transition shadow-md active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> 決定
+                </button>
+            </div>
+        </div>
+
+        <!-- Explanation Panel (Hidden by default) -->
+        <div id="explanation-panel" class="hidden bg-white p-6 rounded-3xl shadow-lg border-2 border-indigo-200 pop-in">
+            <div id="feedback-header" class="flex items-center gap-3 mb-4">
+                <!-- Correct/Incorrect Badge -->
+            </div>
+            
+            <div id="explanation-body" class="text-sm sm:text-base text-slate-700 space-y-3 leading-relaxed">
+                <!-- Detailed calculation steps -->
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button id="next-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-lg transition active:scale-95 flex items-center gap-2">
+                    <span id="next-btn-text">次の問題へ</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- User Settings Modal -->
+    <div id="user-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in relative">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-id-card text-indigo-600"></i> 初期設定（児童・生徒情報）
+            </h3>
+
+            <div class="space-y-4 text-sm text-slate-700">
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">年</label>
+                        <select id="select-grade" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">組</label>
+                        <select id="select-class" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">出席番号</label>
+                        <select id="select-number" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-1 text-xs text-slate-500">氏名</label>
+                    <input type="text" id="input-name" placeholder="例：山田 太郎" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button id="save-user-btn" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow">
+                    保存して始める
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal (5問終了時に表示＆自動送信) -->
+    <div id="result-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in text-center">
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-black">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h3 class="text-xl font-extrabold text-slate-800 mb-1" id="result-title">5問終了！</h3>
+            <p class="text-xs text-slate-500 mb-4" id="result-user-info"></p>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4">
+                <div class="text-xs font-bold text-slate-500 mb-1">今回の正答率</div>
+                <div class="text-3xl font-black text-indigo-600" id="result-score">0%</div>
+                <div class="text-xs font-bold text-slate-600 mt-1" id="result-detail">5問中 0問正解</div>
+            </div>
+
+            <div id="send-status" class="text-xs font-bold text-slate-500 my-3 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> スプレッドシートへ送信中...
+            </div>
+
+            <button id="result-close-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow">
+                もう一度挑戦する
+            </button>
+        </div>
+    </div>
+
+    <!-- Help Modal (教科書スタイルに修正済み) -->
+    <div id="help-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl pop-in relative max-h-[90vh] overflow-y-auto">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-200 pb-3">
+                <i class="fa-solid fa-book-open text-indigo-600"></i> 内分点・外分点の解き方ポイント
+            </h3>
+
+            <div class="space-y-4 text-sm text-slate-700 leading-relaxed">
+                <!-- 内分点 -->
+                <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <div class="font-bold text-indigo-900 text-base mb-1 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-indigo-600"></span> 内分点（ないぶんてん）
+                    </div>
+                    <p class="text-xs text-slate-600 mb-2">
+                        線分 <b>AB</b> の <b>内側</b>（AとBの間）を <b>m : n</b> に分ける点です。
+                    </p>
+                    <div class="bg-white p-3 rounded-xl border border-indigo-100 text-xs text-slate-700 space-y-1">
+                        <p class="font-bold text-indigo-700">【考え方のコツ】</p>
+                        <p>・比の合計 <b>m + n</b> マスに全体を分けるイメージです。</p>
+                        <p>・<b>点 A から m マス</b>、<b>点 B から n マス</b> 進んだ内側の点が答えになります。</p>
+                        <p class="text-slate-500 pt-1">例：3 : 1 に内分する ➔ Aから3マス、Bから1マスの地点</p>
+                    </div>
+                </div>
+
+                <!-- 外分点 -->
+                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                    <div class="font-bold text-amber-900 text-base mb-1 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-600"></span> 外分点（がいぶんてん）
+                    </div>
+                    <p class="text-xs text-slate-600 mb-2">
+                        線分 <b>AB</b> の <b>外側</b>（AやBの外）にあり、A・Bからの距離の比が <b>m : n</b> となる点です。
+                    </p>
+                    <div class="bg-white p-3 rounded-xl border border-amber-100 text-xs text-slate-700 space-y-1">
+                        <p class="font-bold text-amber-700">【方向の決め方】</p>
+                        <p>・<b>m &gt; n</b>（左が大きい）➔ <b>点 B の右側</b> にある</p>
+                        <p>・<b>m &lt; n</b>（右が大きい）➔ <b>点 A の左側</b> にある</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="modal-ok-btn" class="w-full mt-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow">
+                理解できました！
+            </button>
+        </div>
+    </div>
+
+    <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200">
+        数直線 内分点・外分点 練習アプリ
+    </footer>
+
+    <script>
+        // Google Apps Script WEB API URL
+        const GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzNzl-jIb9R-vUpLClfhBWIRFWU9IjK6PNr_TS048PYV88TtXMx0HeREBftEf0QY_VzdQ/exec";
+
+        // 全問題数を5問に設定
+        const TOTAL_QUESTIONS = 5;
+
+        // --- Game State Variables ---
+        let currentQuestion = null;
+        let selectedIndex = null;
+        let questionCount = 0;
+        let correctCount = 0;
+        let currentStreak = 0;
+        let isAnswered = false;
+
+        // User Info Object
+        let userInfo = {
+            grade: "1",
+            classNum: "1",
+            number: "1",
+            name: ""
+        };
+
+        // Configuration constants
+        const TICK_COUNT = 15; // Number of ticks on number line (0 to 14)
+        const SVG_NS = "http://www.w3.org/2000/svg";
+
+        // DOM elements
+        const svg = document.getElementById('number-line-svg');
+        const submitBtn = document.getElementById('submit-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const nextBtnText = document.getElementById('next-btn-text');
+        const questionText = document.getElementById('question-text');
+        const questionBadge = document.getElementById('question-badge');
+        const modeSelect = document.getElementById('mode-select');
+        const explanationPanel = document.getElementById('explanation-panel');
+        const feedbackHeader = document.getElementById('feedback-header');
+        const explanationBody = document.getElementById('explanation-body');
+        
+        const scoreCorrect = document.getElementById('score-correct');
+        const scoreAccuracy = document.getElementById('score-accuracy');
+        const scoreStreak = document.getElementById('score-streak');
+
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalOkBtn = document.getElementById('modal-ok-btn');
+
+        // User settings DOM
+        const userSettingsBtn = document.getElementById('user-settings-btn');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userModal = document.getElementById('user-modal');
+        const selectGrade = document.getElementById('select-grade');
+        const selectClass = document.getElementById('select-class');
+        const selectNumber = document.getElementById('select-number');
+        const inputName = document.getElementById('input-name');
+        const saveUserBtn = document.getElementById('save-user-btn');
+
+        // Result Modal DOM
+        const resultModal = document.getElementById('result-modal');
+        const resultTitle = document.getElementById('result-title');
+        const resultUserInfo = document.getElementById('result-user-info');
+        const resultScore = document.getElementById('result-score');
+        const resultDetail = document.getElementById('result-detail');
+        const sendStatus = document.getElementById('send-status');
+        const resultCloseBtn = document.getElementById('result-close-btn');
+
+        function initUserSettingsUI() {
+            selectGrade.innerHTML = [1,2,3].map(n => `<option value="${n}">${n}年</option>`).join('');
+            selectClass.innerHTML = Array.from({length: 9}, (_, i) => `<option value="${i+1}">${i+1}組</option>`).join('');
+            selectNumber.innerHTML = Array.from({length: 40}, (_, i) => `<option value="${i+1}">${i+1}番</option>`).join('');
+
+            const saved = localStorage.getItem('circle_math_user_info');
+            if (saved) {
+                userInfo = JSON.parse(saved);
+                selectGrade.value = userInfo.grade;
+                selectClass.value = userInfo.classNum;
+                selectNumber.value = userInfo.number;
+                inputName.value = userInfo.name;
+                updateUserDisplay();
+            } else {
+                userModal.classList.remove('hidden');
+                userModal.classList.add('flex');
+            }
+        }
+
+        function updateUserDisplay() {
+            if (userInfo.name) {
+                userDisplayName.textContent = `${userInfo.grade}-${userInfo.classNum} ${userInfo.name}`;
+            } else {
+                userDisplayName.textContent = "初期設定";
+            }
+        }
+
+        saveUserBtn.addEventListener('click', () => {
+            if (!inputName.value.trim()) {
+                alert("氏名を入力してください");
+                return;
+            }
+            userInfo = {
+                grade: selectGrade.value,
+                classNum: selectClass.value,
+                number: selectNumber.value,
+                name: inputName.value.trim()
+            };
+            localStorage.setItem('circle_math_user_info', JSON.stringify(userInfo));
+            updateUserDisplay();
+            userModal.classList.add('hidden');
+        });
+
+        userSettingsBtn.addEventListener('click', () => {
+            userModal.classList.remove('hidden');
+            userModal.classList.add('flex');
+        });
+
+        // Helper: Generate Random Question
+        function generateQuestion() {
+            const mode = modeSelect.value;
+            const isExternal = mode === 'external' ? true : (mode === 'mixed' ? Math.random() < 0.35 : false);
+
+            let posA, posB, m, n, targetPos, targetName;
+            const pointNames = ['P', 'Q', 'R', 'S'];
+            targetName = pointNames[Math.floor(Math.random() * pointNames.length)];
+
+            let valid = false;
+            let attempts = 0;
+
+            while (!valid && attempts < 100) {
+                attempts++;
+                m = Math.floor(Math.random() * 4) + 1; // 1 to 4
+                n = Math.floor(Math.random() * 4) + 1; // 1 to 4
+
+                if (isExternal && m === n) continue;
+
+                if (!isExternal) {
+                    const k = Math.floor(Math.random() * 2) + 1;
+                    const segmentLength = (m + n) * k;
+                    posA = Math.floor(Math.random() * (TICK_COUNT - segmentLength));
+                    posB = posA + segmentLength;
+                    targetPos = posA + m * k;
+                } else {
+                    const k = 1;
+                    if (m > n) {
+                        const abLength = (m - n) * k;
+                        posA = Math.floor(Math.random() * (TICK_COUNT - abLength - n * k));
+                        posB = posA + abLength;
+                        targetPos = posB + n * k;
+                    } else {
+                        const abLength = (n - m) * k;
+                        targetPos = Math.floor(Math.random() * (TICK_COUNT - abLength - m * k));
+                        posA = targetPos + m * k;
+                        posB = posA + abLength;
+                    }
+                }
+
+                if (posA >= 0 && posB < TICK_COUNT && targetPos >= 0 && targetPos < TICK_COUNT && posA !== posB) {
+                    valid = true;
+                }
+            }
+
+            return {
+                type: isExternal ? 'external' : 'internal',
+                posA: posA,
+                posB: posB,
+                m: m,
+                n: n,
+                targetPos: targetPos,
+                targetName: targetName
+            };
+        }
+
+        // Render Number Line SVG
+        function renderNumberLine() {
+            svg.innerHTML = '';
+            const width = 800;
+            const height = 180;
+            const startX = 50;
+            const endX = width - 50;
+            const lineY = 100;
+            const step = (endX - startX) / (TICK_COUNT - 1);
+
+            const baseLine = document.createElementNS(SVG_NS, 'line');
+            baseLine.setAttribute('x1', startX - 20);
+            baseLine.setAttribute('y1', lineY);
+            baseLine.setAttribute('x2', endX + 20);
+            baseLine.setAttribute('y2', lineY);
+            baseLine.setAttribute('stroke', '#64748b');
+            baseLine.setAttribute('stroke-width', '4');
+            baseLine.setAttribute('stroke-linecap', 'round');
+            svg.appendChild(baseLine);
+
+            const arrowLeft = document.createElementNS(SVG_NS, 'polygon');
+            arrowLeft.setAttribute('points', `${startX - 25},${lineY} ${startX - 15},${lineY - 6} ${startX - 15},${lineY + 6}`);
+            arrowLeft.setAttribute('fill', '#64748b');
+            svg.appendChild(arrowLeft);
+
+            const arrowRight = document.createElementNS(SVG_NS, 'polygon');
+            arrowRight.setAttribute('points', `${endX + 25},${lineY} ${endX + 15},${lineY - 6} ${endX + 15},${lineY + 6}`);
+            arrowRight.setAttribute('fill', '#64748b');
+            svg.appendChild(arrowRight);
+
+            for (let i = 0; i < TICK_COUNT; i++) {
+                const x = startX + i * step;
+
+                const tick = document.createElementNS(SVG_NS, 'line');
+                tick.setAttribute('x1', x);
+                tick.setAttribute('y1', lineY - 12);
+                tick.setAttribute('x2', x);
+                tick.setAttribute('y2', lineY + 12);
+                tick.setAttribute('stroke', '#475569');
+                tick.setAttribute('stroke-width', '3');
+                tick.setAttribute('stroke-linecap', 'round');
+                svg.appendChild(tick);
+
+                const touchArea = document.createElementNS(SVG_NS, 'rect');
+                touchArea.setAttribute('x', x - step / 2);
+                touchArea.setAttribute('y', lineY - 50);
+                touchArea.setAttribute('width', step);
+                touchArea.setAttribute('height', 100);
+                touchArea.setAttribute('fill', 'transparent');
+                touchArea.setAttribute('class', 'cursor-pointer');
+                
+                if (!isAnswered) {
+                    touchArea.addEventListener('click', () => handleTickClick(i));
+                }
+                svg.appendChild(touchArea);
+
+                if (i === currentQuestion.posA || i === currentQuestion.posB) {
+                    const labelName = i === currentQuestion.posA ? 'A' : 'B';
+                    
+                    const pointCircle = document.createElementNS(SVG_NS, 'circle');
+                    pointCircle.setAttribute('cx', x);
+                    pointCircle.setAttribute('cy', lineY);
+                    pointCircle.setAttribute('r', '7');
+                    pointCircle.setAttribute('fill', '#4f46e5');
+                    svg.appendChild(pointCircle);
+
+                    const text = document.createElementNS(SVG_NS, 'text');
+                    text.setAttribute('x', x);
+                    text.setAttribute('y', lineY + 38);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('font-weight', '800');
+                    text.setAttribute('font-size', '20');
+                    text.setAttribute('fill', '#1e1b4b');
+                    text.textContent = labelName;
+                    svg.appendChild(text);
+                }
+
+                if (selectedIndex === i) {
+                    const selectedCircle = document.createElementNS(SVG_NS, 'circle');
+                    selectedCircle.setAttribute('cx', x);
+                    selectedCircle.setAttribute('cy', lineY);
+                    selectedCircle.setAttribute('r', '11');
+                    selectedCircle.setAttribute('fill', '#f59e0b');
+                    selectedCircle.setAttribute('stroke', '#ffffff');
+                    selectedCircle.setAttribute('stroke-width', '3');
+                    selectedCircle.setAttribute('class', 'pop-in');
+                    svg.appendChild(selectedCircle);
+
+                    const textP = document.createElementNS(SVG_NS, 'text');
+                    textP.setAttribute('x', x);
+                    textP.setAttribute('y', lineY - 24);
+                    textP.setAttribute('text-anchor', 'middle');
+                    textP.setAttribute('font-weight', '800');
+                    textP.setAttribute('font-size', '22');
+                    textP.setAttribute('fill', '#d97706');
+                    textP.textContent = currentQuestion.targetName;
+                    svg.appendChild(textP);
+                }
+            }
+
+            if (isAnswered) {
+                renderArcs(startX, step, lineY);
+            }
+        }
+
+        function renderArcs(startX, step, lineY) {
+            const posA = currentQuestion.posA;
+            const posB = currentQuestion.posB;
+            const posTarget = currentQuestion.targetPos;
+
+            const xA = startX + posA * step;
+            const xB = startX + posB * step;
+            const xTarget = startX + posTarget * step;
+
+            drawArc(xA, xTarget, lineY, `${currentQuestion.m}`, '#3b82f6', -50);
+            drawArc(xB, xTarget, lineY, `${currentQuestion.n}`, '#ec4899', -90);
+
+            if (selectedIndex !== posTarget) {
+                const correctCircle = document.createElementNS(SVG_NS, 'circle');
+                correctCircle.setAttribute('cx', xTarget);
+                correctCircle.setAttribute('cy', lineY);
+                correctCircle.setAttribute('r', '11');
+                correctCircle.setAttribute('fill', '#10b981');
+                correctCircle.setAttribute('stroke', '#ffffff');
+                correctCircle.setAttribute('stroke-width', '3');
+                svg.appendChild(correctCircle);
+
+                const correctText = document.createElementNS(SVG_NS, 'text');
+                correctText.setAttribute('x', xTarget);
+                correctText.setAttribute('y', lineY - 24);
+                correctText.setAttribute('text-anchor', 'middle');
+                correctText.setAttribute('font-weight', '800');
+                correctText.setAttribute('font-size', '22');
+                correctText.setAttribute('fill', '#059669');
+                correctText.textContent = `${currentQuestion.targetName} (正解)`;
+                svg.appendChild(correctText);
+            }
+        }
+
+        function drawArc(xStart, xEnd, baseY, label, color, heightOffset) {
+            const midX = (xStart + xEnd) / 2;
+            const distance = Math.abs(xEnd - xStart);
+            const curveY = baseY + (heightOffset < 0 ? -Math.min(distance * 0.4, 70) : Math.min(distance * 0.4, 70));
+
+            const path = document.createElementNS(SVG_NS, 'path');
+            const d = `M ${xStart} ${baseY - 10} Q ${midX} ${curveY} ${xEnd} ${baseY - 10}`;
+            path.setAttribute('d', d);
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', '3.5');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('class', 'arc-line');
+            svg.appendChild(path);
+
+            const text = document.createElementNS(SVG_NS, 'text');
+            text.setAttribute('x', midX);
+            text.setAttribute('y', curveY + (heightOffset < 0 ? -8 : 20));
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-weight', 'bold');
+            text.setAttribute('font-size', '16');
+            text.setAttribute('fill', color);
+            text.textContent = label;
+            svg.appendChild(text);
+        }
+
+        function handleTickClick(index) {
+            if (isAnswered) return;
+            selectedIndex = index;
+            submitBtn.disabled = false;
+            renderNumberLine();
+        }
+
+        function resetGame() {
+            questionCount = 0;
+            correctCount = 0;
+            currentStreak = 0;
+            scoreCorrect.textContent = `0 / 0`;
+            scoreAccuracy.textContent = "0%";
+            scoreStreak.textContent = "0 🔥";
+            loadNewQuestion();
+        }
+
+        function loadNewQuestion() {
+            isAnswered = false;
+            selectedIndex = null;
+            submitBtn.disabled = true;
+            explanationPanel.classList.add('hidden');
+
+            currentQuestion = generateQuestion();
+            questionCount++;
+
+            questionBadge.textContent = `第 ${questionCount} / ${TOTAL_QUESTIONS} 問`;
+
+            const typeText = currentQuestion.type === 'internal' ? '内分する' : '外分する';
+            questionText.innerHTML = `線分 <span class="text-indigo-600 underline decoration-2 underline-offset-4">AB</span> を <span class="text-amber-600 font-black">${currentQuestion.m} : ${currentQuestion.n}</span> に${typeText}点 <span class="text-indigo-600 font-black">${currentQuestion.targetName}</span> はどこ？`;
+
+            if (questionCount === TOTAL_QUESTIONS) {
+                nextBtnText.textContent = "結果を見る";
+            } else {
+                nextBtnText.textContent = "次の問題へ";
+            }
+
+            renderNumberLine();
+        }
+
+        function submitAnswer() {
+            if (selectedIndex === null || isAnswered) return;
+
+            isAnswered = true;
+            const isCorrect = selectedIndex === currentQuestion.targetPos;
+
+            if (isCorrect) {
+                correctCount++;
+                currentStreak++;
+            } else {
+                currentStreak = 0;
+            }
+
+            scoreCorrect.textContent = `${correctCount} / ${questionCount}`;
+            scoreAccuracy.textContent = `${Math.round((correctCount / questionCount) * 100)}%`;
+            scoreStreak.textContent = `${currentStreak} 🔥`;
+
+            renderNumberLine();
+
+            explanationPanel.classList.remove('hidden');
+
+            if (isCorrect) {
+                feedbackHeader.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xl">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-emerald-700">正解です！素晴らしい！</div>
+                        <div class="text-xs text-slate-500">正しい位置を選べました。</div>
+                    </div>
+                `;
+            } else {
+                feedbackHeader.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-xl">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-rose-700">惜しい！不正解です</div>
+                        <div class="text-xs text-slate-500">正解の位置は緑色の点 (${currentQuestion.targetName}) です。</div>
+                    </div>
+                `;
+            }
+
+            const posA = currentQuestion.posA;
+            const posB = currentQuestion.posB;
+            const totalSegment = Math.abs(posB - posA);
+            const m = currentQuestion.m;
+            const n = currentQuestion.n;
+
+            if (currentQuestion.type === 'internal') {
+                const stepUnit = totalSegment / (m + n);
+                explanationBody.innerHTML = `
+                    <p>• <b>内分点</b>は線分 AB の内側にあります。</p>
+                    <p>• 線分 AB (${totalSegment} マス) を <span class="text-blue-600 font-bold">${m}</span> : <span class="text-pink-600 font-bold">${n}</span> に分けるため、全体の比の合計は <b>${m} + ${n} = ${m + n}</b> です。</p>
+                    <p>• 点 A から右に <span class="text-blue-600 font-bold">${m * stepUnit} マス</span> （<span class="text-pink-600 font-bold">点 B</span> から左に ${n * stepUnit} マス）進んだ位置が点 <b>${currentQuestion.targetName}</b> になります。</p>
+                `;
+            } else {
+                if (m > n) {
+                    explanationBody.innerHTML = `
+                        <p>• <b>外分点 (${m} : ${n})</b> で <span class="font-bold">${m} &gt; ${n}</span> のため、点 <b>${currentQuestion.targetName}</b> は <b>点 B の右側</b> に位置します。</p>
+                        <p>• AP : PB = ${m} : ${n} なので、AB 間は <span class="font-bold">${m} - ${n} = ${m - n}</span> の比に相当します。</p>
+                        <p>• 点 A から <span class="text-blue-600 font-bold">${m} マス</span>、点 B から <span class="text-pink-600 font-bold">${n} マス</span> の距離になる位置が正解です。</p>
+                    `;
+                } else {
+                    explanationBody.innerHTML = `
+                        <p>• <b>外分点 (${m} : ${n})</b> で <span class="font-bold">${m} &lt; ${n}</span> のため、点 <b>${currentQuestion.targetName}</b> は <b>点 A の左側</b> に位置します。</p>
+                        <p>• AP : PB = ${m} : ${n} なので、AB 間は <span class="font-bold">${n} - ${m} = ${n - m}</span> の比に相当します。</p>
+                        <p>• 点 A から <span class="text-blue-600 font-bold">${m} マス</span>、点 B から <span class="text-pink-600 font-bold">${n} マス</span> の距離になる位置が正解です。</p>
+                    `;
+                }
+            }
+
+            explanationPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // 成績データ送信機能
+        function sendResultToGAS() {
+            if (!userInfo.name) {
+                userModal.classList.remove('hidden');
+                userModal.classList.add('flex');
+                return;
+            }
+
+            const ratePercent = Math.round((correctCount / TOTAL_QUESTIONS) * 100);
+            const scoreRateStr = `${ratePercent}% (${correctCount}/${TOTAL_QUESTIONS}問)`;
+            
+            let modeNameLabel = "内分点・外分点 (";
+            if (modeSelect.value === 'internal') modeNameLabel += "内分点のみ)";
+            else if (modeSelect.value === 'external') modeNameLabel += "外分点のみ)";
+            else modeNameLabel += "ミックス)";
+
+            resultTitle.textContent = "全5問 終了！";
+            resultUserInfo.textContent = `${userInfo.grade}年 ${userInfo.classNum}組 ${userInfo.number}番  ${userInfo.name}`;
+            resultScore.textContent = `${ratePercent}%`;
+            resultDetail.textContent = `正解数：${correctCount} / ${TOTAL_QUESTIONS} 問`;
+
+            sendStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> スプレッドシートへ送信中...`;
+            sendStatus.className = "text-xs font-bold text-slate-500 my-3 flex items-center justify-center gap-2";
+
+            resultModal.classList.remove('hidden');
+            resultModal.classList.add('flex');
+
+            const payload = {
+                grade: userInfo.grade,
+                classNum: userInfo.classNum,
+                number: userInfo.number,
+                name: userInfo.name,
+                modeName: modeNameLabel,
+                scoreRate: scoreRateStr
+            };
+
+            fetch(GAS_ENDPOINT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                sendStatus.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> スプレッドシートに送信完了しました！`;
+                sendStatus.className = "text-xs font-bold text-emerald-600 my-3 flex items-center justify-center gap-2";
+            })
+            .catch(err => {
+                console.error("送信エラー:", err);
+                sendStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-500"></i> 送信に失敗しました`;
+                sendStatus.className = "text-xs font-bold text-rose-600 my-3 flex items-center justify-center gap-2";
+            });
+        }
+
+        submitBtn.addEventListener('click', submitAnswer);
+        
+        resetBtn.addEventListener('click', () => {
+            if (isAnswered) return;
+            selectedIndex = null;
+            submitBtn.disabled = true;
+            renderNumberLine();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (questionCount >= TOTAL_QUESTIONS) {
+                sendResultToGAS();
+            } else {
+                loadNewQuestion();
+            }
+        });
+
+        modeSelect.addEventListener('change', () => {
+            resetGame();
+        });
+
+        resultCloseBtn.addEventListener('click', () => {
+            resultModal.classList.add('hidden');
+            resetGame();
+        });
+
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.remove('hidden');
+            helpModal.classList.add('flex');
+        });
+        closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+        modalOkBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initUserSettingsUI();
+            resetGame();
+        });
+    </script>
+</body>
+</html>

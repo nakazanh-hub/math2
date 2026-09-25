@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数直線 内分点・外分点の座標計算マスター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap');
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .arc-line {
+            stroke-dasharray: 600;
+            stroke-dashoffset: 600;
+            animation: dash 0.8s ease-out forwards;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: 0; }
+        }
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- 教科書通りの縦積み分数スタイル --- */
+        .math-frac {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            text-align: center;
+            padding: 0 4px;
+        }
+        .math-num {
+            border-bottom: 2px solid #334155;
+            padding-bottom: 2px;
+            font-weight: 800;
+        }
+        .math-den {
+            padding-top: 2px;
+            font-weight: 800;
+        }
+        .math-eq {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 8px;
+            font-weight: 800;
+            color: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-calculator text-yellow-300 text-2xl"></i>
+                <h1 class="font-bold text-lg sm:text-xl tracking-wide">内分点・外分点 座標マスター</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="user-settings-btn" class="text-xs sm:text-sm bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-full transition flex items-center gap-1 border border-indigo-400">
+                    <i class="fa-solid fa-user-gear"></i> <span id="user-display-name">初期設定</span>
+                </button>
+                <button id="help-btn" class="text-xs sm:text-sm bg-indigo-500 hover:bg-indigo-700 px-3 py-1.5 rounded-full transition flex items-center gap-1">
+                    <i class="fa-solid fa-circle-question"></i> 公式の使い方
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-grow flex flex-col gap-6">
+
+        <!-- Scoreboard & Settings -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 text-center">
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">正解数</div>
+                <div id="score-correct" class="text-2xl font-black text-indigo-600">0 / 0</div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">正解率</div>
+                <div id="score-accuracy" class="text-2xl font-black text-emerald-600">0%</div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">連続正解</div>
+                <div id="score-streak" class="text-2xl font-black text-amber-500">0 🔥</div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl flex flex-col justify-center items-center">
+                <label for="mode-select" class="text-xs text-slate-500 font-bold mb-1">出題モード</label>
+                <select id="mode-select" class="text-xs font-bold bg-white border border-slate-300 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-400">
+                    <option value="internal" selected>① 内分点のみ (基本)</option>
+                    <option value="external">② 外分点のみ</option>
+                    <option value="mixed">③ ミックス (発展)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Question Box -->
+        <div id="question-card" class="bg-white p-6 sm:p-8 rounded-3xl shadow-md border border-indigo-100 flex flex-col items-center relative">
+            
+            <div class="w-full flex justify-between items-center mb-4">
+                <span id="question-badge" class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
+                    第 1 / 5 問
+                </span>
+                
+                <!-- Toggle Number Line Hint -->
+                <button id="toggle-hint-btn" class="text-xs px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold border border-amber-200 rounded-full transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-eye"></i> <span id="hint-btn-text">数直線ヒントを表示</span>
+                </button>
+            </div>
+
+            <!-- Question Text -->
+            <div class="w-full bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center my-2">
+                <div id="question-text" class="text-base sm:text-xl font-bold text-slate-800 leading-relaxed inline-block">
+                    読み込み中...
+                </div>
+            </div>
+
+            <!-- Number Line Hint Area (デフォルト非表示) -->
+            <div id="hint-container" class="hidden w-full bg-slate-50 rounded-2xl p-4 my-3 border border-slate-200 flex flex-col items-center">
+                <div class="text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
+                    <i class="fa-solid fa-lightbulb text-amber-500"></i> 目盛りを数えて位置を確認し、下のテンキーから座標を入力してください
+                </div>
+                <div class="w-full overflow-x-auto py-2 px-2 flex justify-center items-center">
+                    <div class="min-w-[650px] w-full max-w-[800px] relative">
+                        <svg id="number-line-svg" class="w-full h-44 select-none" viewBox="0 0 800 170">
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Answer Input Section -->
+            <div class="w-full max-w-xs flex flex-col items-center gap-3 my-2">
+                <div class="text-sm font-bold text-slate-600 flex items-center gap-1">
+                    <i class="fa-solid fa-pen-to-square text-indigo-500"></i> 点 <span id="target-point-name">P</span> の座標を自力で入力
+                </div>
+
+                <div class="flex items-center gap-2 w-full">
+                    <div class="relative w-full">
+                        <input type="text" id="answer-input" readonly placeholder="数字を入力"
+                            class="w-full text-center text-2xl font-black py-3 px-4 bg-slate-100 border-2 border-slate-300 rounded-2xl focus:border-indigo-500 focus:bg-white focus:outline-none transition tracking-widest text-indigo-900 shadow-inner">
+                    </div>
+                    <button id="clear-btn" class="p-3 bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold rounded-2xl transition flex items-center justify-center">
+                        <i class="fa-solid fa-erase"></i>
+                    </button>
+                </div>
+
+                <!-- Custom On-Screen Numpad -->
+                <div class="grid grid-cols-4 gap-2 w-full mt-1">
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="7">7</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="8">8</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="9">9</button>
+                    <button class="numpad-btn py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-xl text-lg transition active:scale-95" data-val="-">－</button>
+                    
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="4">4</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="5">5</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="6">6</button>
+                    <button class="numpad-btn py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold rounded-xl text-lg transition active:scale-95" data-val="back"><i class="fa-solid fa-backspace"></i></button>
+
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="1">1</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="2">2</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="3">3</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="0">0</button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-4 mt-2 w-full max-w-xs">
+                <button id="submit-btn" disabled class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-black rounded-xl transition shadow-md active:scale-95 flex items-center justify-center gap-2 text-base">
+                    <i class="fa-solid fa-paper-plane"></i> 解答する
+                </button>
+            </div>
+        </div>
+
+        <!-- Explanation Panel -->
+        <div id="explanation-panel" class="hidden bg-white p-6 rounded-3xl shadow-lg border-2 border-indigo-200 pop-in">
+            <div id="feedback-header" class="flex items-center gap-3 mb-4"></div>
+            <div id="explanation-body" class="text-sm sm:text-base text-slate-700 space-y-4 leading-relaxed"></div>
+
+            <div class="mt-6 flex justify-end">
+                <button id="next-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-lg transition active:scale-95 flex items-center gap-2">
+                    <span id="next-btn-text">次の問題へ</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- User Settings Modal -->
+    <div id="user-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in relative">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-id-card text-indigo-600"></i> 初期設定（児童・生徒情報）
+            </h3>
+
+            <div class="space-y-4 text-sm text-slate-700">
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">年</label>
+                        <select id="select-grade" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">組</label>
+                        <select id="select-class" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">出席番号</label>
+                        <select id="select-number" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-1 text-xs text-slate-500">氏名</label>
+                    <input type="text" id="input-name" placeholder="例：山田 太郎" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button id="save-user-btn" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow">
+                    保存して始める
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal (5問終了時に表示＆自動送信) -->
+    <div id="result-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in text-center">
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-black">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h3 class="text-xl font-extrabold text-slate-800 mb-1" id="result-title">5問終了！</h3>
+            <p class="text-xs text-slate-500 mb-4" id="result-user-info"></p>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4">
+                <div class="text-xs font-bold text-slate-500 mb-1">今回の正答率</div>
+                <div class="text-3xl font-black text-indigo-600" id="result-score">0%</div>
+                <div class="text-xs font-bold text-slate-600 mt-1" id="result-detail">5問中 0問正解</div>
+            </div>
+
+            <div id="send-status" class="text-xs font-bold text-slate-500 my-3 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> スプレッドシートへ送信中...
+            </div>
+
+            <button id="result-close-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition shadow">
+                もう一度挑戦する
+            </button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in relative">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-square-root-variable text-indigo-600"></i> 内分点・外分点の公式
+            </h3>
+
+            <div class="space-y-4 text-sm text-slate-600">
+                <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <div class="font-bold text-indigo-900 mb-2">■ 内分点の公式</div>
+                    <p class="text-xs text-slate-600 mb-2">2点 A(a), B(b) を結ぶ線分 AB を m : n に内分する点 P：</p>
+                    <div class="bg-white p-3 rounded-xl border border-indigo-200 text-center font-black text-indigo-800">
+                        x = 
+                        <div class="math-frac">
+                            <span class="math-num">n・a + m・b</span>
+                            <span class="math-den">m + n</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                    <div class="font-bold text-amber-900 mb-2">■ 外分点の公式</div>
+                    <p class="text-xs text-slate-600 mb-2">2点 A(a), B(b) を結ぶ線分 AB を m : n に外分する点 Q：</p>
+                    <div class="bg-white p-3 rounded-xl border border-amber-200 text-center font-black text-amber-800">
+                        x = 
+                        <div class="math-frac">
+                            <span class="math-num">-n・a + m・b</span>
+                            <span class="math-den">m - n</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="modal-ok-btn" class="w-full mt-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition">
+                閉じる
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzNzl-jIb9R-vUpLClfhBWIRFWU9IjK6PNr_TS048PYV88TtXMx0HeREBftEf0QY_VzdQ/exec";
+
+        const TOTAL_QUESTIONS = 5;
+
+        let currentQuestion = null;
+        let questionCount = 0;
+        let correctCount = 0;
+        let currentStreak = 0;
+        let isAnswered = false;
+        let isHintVisible = false;
+        let selectedTappedValue = null;
+
+        let userInfo = {
+            grade: "1",
+            classNum: "1",
+            number: "1",
+            name: ""
+        };
+
+        const SVG_NS = "http://www.w3.org/2000/svg";
+
+        const svg = document.getElementById('number-line-svg');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const nextBtnText = document.getElementById('next-btn-text');
+        const questionText = document.getElementById('question-text');
+        const questionBadge = document.getElementById('question-badge');
+        const modeSelect = document.getElementById('mode-select');
+        const explanationPanel = document.getElementById('explanation-panel');
+        const feedbackHeader = document.getElementById('feedback-header');
+        const explanationBody = document.getElementById('explanation-body');
+        const answerInput = document.getElementById('answer-input');
+        const clearBtn = document.getElementById('clear-btn');
+        const targetPointName = document.getElementById('target-point-name');
+
+        const toggleHintBtn = document.getElementById('toggle-hint-btn');
+        const hintBtnText = document.getElementById('hint-btn-text');
+        const hintContainer = document.getElementById('hint-container');
+
+        const scoreCorrect = document.getElementById('score-correct');
+        const scoreAccuracy = document.getElementById('score-accuracy');
+        const scoreStreak = document.getElementById('score-streak');
+
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalOkBtn = document.getElementById('modal-ok-btn');
+
+        const userSettingsBtn = document.getElementById('user-settings-btn');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userModal = document.getElementById('user-modal');
+        const selectGrade = document.getElementById('select-grade');
+        const selectClass = document.getElementById('select-class');
+        const selectNumber = document.getElementById('select-number');
+        const inputName = document.getElementById('input-name');
+        const saveUserBtn = document.getElementById('save-user-btn');
+
+        const resultModal = document.getElementById('result-modal');
+        const resultTitle = document.getElementById('result-title');
+        const resultUserInfo = document.getElementById('result-user-info');
+        const resultScore = document.getElementById('result-score');
+        const resultDetail = document.getElementById('result-detail');
+        const sendStatus = document.getElementById('send-status');
+        const resultCloseBtn = document.getElementById('result-close-btn');
+
+        function initUserSettingsUI() {
+            selectGrade.innerHTML = [1,2,3].map(n => `<option value="${n}">${n}年</option>`).join('');
+            selectClass.innerHTML = Array.from({length: 9}, (_, i) => `<option value="${i+1}">${i+1}組</option>`).join('');
+            selectNumber.innerHTML = Array.from({length: 40}, (_, i) => `<option value="${i+1}">${i+1}番</option>`).join('');
+
+            const saved = localStorage.getItem('circle_math_coord_user_info');
+            if (saved) {
+                userInfo = JSON.parse(saved);
+                selectGrade.value = userInfo.grade;
+                selectClass.value = userInfo.classNum;
+                selectNumber.value = userInfo.number;
+                inputName.value = userInfo.name;
+                updateUserDisplay();
+            } else {
+                userModal.classList.remove('hidden');
+                userModal.classList.add('flex');
+            }
+        }
+
+        function updateUserDisplay() {
+            if (userInfo.name) {
+                userDisplayName.textContent = `${userInfo.grade}-${userInfo.classNum} ${userInfo.name}`;
+            } else {
+                userDisplayName.textContent = "初期設定";
+            }
+        }
+
+        saveUserBtn.addEventListener('click', () => {
+            if (!inputName.value.trim()) {
+                alert("氏名を入力してください");
+                return;
+            }
+            userInfo = {
+                grade: selectGrade.value,
+                classNum: selectClass.value,
+                number: selectNumber.value,
+                name: inputName.value.trim()
+            };
+            localStorage.setItem('circle_math_coord_user_info', JSON.stringify(userInfo));
+            updateUserDisplay();
+            userModal.classList.add('hidden');
+        });
+
+        userSettingsBtn.addEventListener('click', () => {
+            userModal.classList.remove('hidden');
+            userModal.classList.add('flex');
+        });
+
+        function generateQuestion() {
+            const mode = modeSelect.value;
+            const isExternal = mode === 'external' ? true : (mode === 'mixed' ? Math.random() < 0.35 : false);
+
+            let coordA, coordB, m, n, targetCoord;
+            const pointPairs = [
+                { p1: 'A', p2: 'B', target: 'P' },
+                { p1: 'C', p2: 'D', target: 'Q' },
+                { p1: 'E', p2: 'F', target: 'R' }
+            ];
+            const pair = pointPairs[Math.floor(Math.random() * pointPairs.length)];
+
+            let valid = false;
+            let attempts = 0;
+
+            while (!valid && attempts < 300) {
+                attempts++;
+                m = Math.floor(Math.random() * 4) + 1;
+                n = Math.floor(Math.random() * 4) + 1;
+
+                if (isExternal && m === n) continue;
+
+                if (!isExternal) {
+                    const totalRatio = m + n;
+                    const step = Math.floor(Math.random() * 3) + 1;
+                    coordA = Math.floor(Math.random() * 11) - 5;
+                    const diff = totalRatio * step;
+                    coordB = coordA + diff;
+                    targetCoord = (n * coordA + m * coordB) / totalRatio;
+                } else {
+                    const ratioDiff = m - n;
+                    const step = Math.floor(Math.random() * 3) + 1;
+                    coordA = Math.floor(Math.random() * 9) - 4;
+                    const diff = Math.abs(ratioDiff * step);
+                    coordB = coordA + diff;
+                    targetCoord = (-n * coordA + m * coordB) / ratioDiff;
+                }
+
+                if (Number.isInteger(targetCoord) &&
+                    coordA >= -8 && coordA <= 12 &&
+                    coordB >= -8 && coordB <= 12 &&
+                    targetCoord >= -9 && targetCoord <= 13 &&
+                    coordA !== coordB) {
+                    valid = true;
+                }
+            }
+
+            return {
+                type: isExternal ? 'external' : 'internal',
+                p1: pair.p1,
+                p2: pair.p2,
+                targetName: pair.target,
+                coordA: coordA,
+                coordB: coordB,
+                m: m,
+                n: n,
+                targetCoord: targetCoord
+            };
+        }
+
+        function renderNumberLine() {
+            svg.innerHTML = '';
+            
+            const minVal = Math.min(currentQuestion.coordA, currentQuestion.coordB, currentQuestion.targetCoord) - 2;
+            const maxVal = Math.max(currentQuestion.coordA, currentQuestion.coordB, currentQuestion.targetCoord) + 2;
+            const tickCount = maxVal - minVal + 1;
+
+            const width = 800;
+            const startX = 50;
+            const endX = width - 50;
+            const lineY = 100;
+            const step = (endX - startX) / (tickCount - 1);
+
+            const baseLine = document.createElementNS(SVG_NS, 'line');
+            baseLine.setAttribute('x1', startX - 20);
+            baseLine.setAttribute('y1', lineY);
+            baseLine.setAttribute('x2', endX + 20);
+            baseLine.setAttribute('y2', lineY);
+            baseLine.setAttribute('stroke', '#64748b');
+            baseLine.setAttribute('stroke-width', '4');
+            baseLine.setAttribute('stroke-linecap', 'round');
+            svg.appendChild(baseLine);
+
+            for (let i = 0; i < tickCount; i++) {
+                const val = minVal + i;
+                const x = startX + i * step;
+
+                // 目盛り線
+                const tick = document.createElementNS(SVG_NS, 'line');
+                tick.setAttribute('x1', x);
+                tick.setAttribute('y1', lineY - 8);
+                tick.setAttribute('x2', x);
+                tick.setAttribute('y2', lineY + 8);
+                tick.setAttribute('stroke', '#64748b');
+                tick.setAttribute('stroke-width', '2');
+                svg.appendChild(tick);
+
+                // 数直線上の「数値」は生徒が数えて求められるように削除
+
+                const touchArea = document.createElementNS(SVG_NS, 'rect');
+                touchArea.setAttribute('x', x - step / 2);
+                touchArea.setAttribute('y', lineY - 40);
+                touchArea.setAttribute('width', step);
+                touchArea.setAttribute('height', 80);
+                touchArea.setAttribute('fill', 'transparent');
+                touchArea.setAttribute('class', 'cursor-pointer');
+                if (!isAnswered) {
+                    touchArea.addEventListener('click', () => {
+                        selectedTappedValue = val;
+                        renderNumberLine();
+                    });
+                }
+                svg.appendChild(touchArea);
+
+                if (val === currentQuestion.coordA) {
+                    drawPointMarker(x, lineY, currentQuestion.p1, '#4f46e5');
+                }
+                if (val === currentQuestion.coordB) {
+                    drawPointMarker(x, lineY, currentQuestion.p2, '#4f46e5');
+                }
+
+                if (val === selectedTappedValue) {
+                    const selCircle = document.createElementNS(SVG_NS, 'circle');
+                    selCircle.setAttribute('cx', x);
+                    selCircle.setAttribute('cy', lineY);
+                    selCircle.setAttribute('r', '9');
+                    selCircle.setAttribute('fill', '#f59e0b');
+                    selCircle.setAttribute('stroke', '#ffffff');
+                    selCircle.setAttribute('stroke-width', '2');
+                    svg.appendChild(selCircle);
+                }
+            }
+
+            if (isAnswered) {
+                const getX = (v) => startX + (v - minVal) * step;
+                const xA = getX(currentQuestion.coordA);
+                const xB = getX(currentQuestion.coordB);
+                const xTarget = getX(currentQuestion.targetCoord);
+
+                drawArc(xA, xTarget, lineY, `${currentQuestion.m}`, '#3b82f6', -45);
+                drawArc(xB, xTarget, lineY, `${currentQuestion.n}`, '#ec4899', -80);
+
+                const correctCircle = document.createElementNS(SVG_NS, 'circle');
+                correctCircle.setAttribute('cx', xTarget);
+                correctCircle.setAttribute('cy', lineY);
+                correctCircle.setAttribute('r', '10');
+                correctCircle.setAttribute('fill', '#10b981');
+                correctCircle.setAttribute('stroke', '#ffffff');
+                correctCircle.setAttribute('stroke-width', '2.5');
+                svg.appendChild(correctCircle);
+
+                const correctText = document.createElementNS(SVG_NS, 'text');
+                correctText.setAttribute('x', xTarget);
+                correctText.setAttribute('y', lineY - 20);
+                correctText.setAttribute('text-anchor', 'middle');
+                correctText.setAttribute('font-weight', '800');
+                correctText.setAttribute('font-size', '18');
+                correctText.setAttribute('fill', '#059669');
+                correctText.textContent = `${currentQuestion.targetName}(${currentQuestion.targetCoord})`;
+                svg.appendChild(correctText);
+            }
+        }
+
+        function drawPointMarker(x, y, label, color) {
+            const circle = document.createElementNS(SVG_NS, 'circle');
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            circle.setAttribute('r', '7');
+            circle.setAttribute('fill', color);
+            svg.appendChild(circle);
+
+            const text = document.createElementNS(SVG_NS, 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', y + 36);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-weight', '800');
+            text.setAttribute('font-size', '18');
+            text.setAttribute('fill', '#1e1b4b');
+            text.textContent = label;
+            svg.appendChild(text);
+        }
+
+        function drawArc(xStart, xEnd, baseY, label, color, heightOffset) {
+            const midX = (xStart + xEnd) / 2;
+            const distance = Math.abs(xEnd - xStart);
+            const curveY = baseY + (heightOffset < 0 ? -Math.min(distance * 0.35, 65) : Math.min(distance * 0.35, 65));
+
+            const path = document.createElementNS(SVG_NS, 'path');
+            const d = `M ${xStart} ${baseY - 8} Q ${midX} ${curveY} ${xEnd} ${baseY - 8}`;
+            path.setAttribute('d', d);
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', '3');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('class', 'arc-line');
+            svg.appendChild(path);
+
+            const text = document.createElementNS(SVG_NS, 'text');
+            text.setAttribute('x', midX);
+            text.setAttribute('y', curveY - 6);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-weight', 'bold');
+            text.setAttribute('font-size', '15');
+            text.setAttribute('fill', color);
+            text.textContent = label;
+            svg.appendChild(text);
+        }
+
+        document.querySelectorAll('.numpad-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isAnswered) return;
+                const val = btn.getAttribute('data-val');
+                let current = answerInput.value;
+
+                if (val === 'back') {
+                    answerInput.value = current.slice(0, -1);
+                } else if (val === '-') {
+                    if (current.startsWith('-')) {
+                        answerInput.value = current.substring(1);
+                    } else {
+                        answerInput.value = '-' + current;
+                    }
+                } else {
+                    if (current.length < 5) {
+                        answerInput.value = current + val;
+                    }
+                }
+
+                submitBtn.disabled = answerInput.value.trim() === '' || answerInput.value === '-';
+            });
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (isAnswered) return;
+            answerInput.value = '';
+            submitBtn.disabled = true;
+        });
+
+        toggleHintBtn.addEventListener('click', () => {
+            isHintVisible = !isHintVisible;
+            if (isHintVisible) {
+                hintContainer.classList.remove('hidden');
+                hintBtnText.textContent = "数直線ヒントを隠す";
+                toggleHintBtn.classList.replace('bg-amber-50', 'bg-slate-200');
+                toggleHintBtn.classList.replace('text-amber-700', 'text-slate-700');
+                renderNumberLine();
+            } else {
+                hintContainer.classList.add('hidden');
+                hintBtnText.textContent = "数直線ヒントを表示";
+                toggleHintBtn.classList.replace('bg-slate-200', 'bg-amber-50');
+                toggleHintBtn.classList.replace('text-slate-700', 'text-amber-700');
+            }
+        });
+
+        function resetQuizState() {
+            questionCount = 0;
+            correctCount = 0;
+            currentStreak = 0;
+            scoreCorrect.textContent = "0 / 0";
+            scoreAccuracy.textContent = "0%";
+            scoreStreak.textContent = "0 🔥";
+            loadNewQuestion();
+        }
+
+        function loadNewQuestion() {
+            isAnswered = false;
+            selectedTappedValue = null;
+            answerInput.value = '';
+            submitBtn.disabled = true;
+            explanationPanel.classList.add('hidden');
+
+            // 問題ごとにヒント（数直線）を初期状態（非表示）に戻す
+            isHintVisible = false;
+            hintContainer.classList.add('hidden');
+            hintBtnText.textContent = "数直線ヒントを表示";
+            toggleHintBtn.className = "text-xs px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold border border-amber-200 rounded-full transition flex items-center gap-1.5 shadow-sm";
+
+            currentQuestion = generateQuestion();
+            questionCount++;
+
+            questionBadge.textContent = `第 ${questionCount} / ${TOTAL_QUESTIONS} 問`;
+            targetPointName.textContent = currentQuestion.targetName;
+
+            const typeText = currentQuestion.type === 'internal' ? '内分する' : '外分する';
+            
+            questionText.innerHTML = `2点 <span class="text-indigo-600">${currentQuestion.p1}(${currentQuestion.coordA})</span>, <span class="text-indigo-600">${currentQuestion.p2}(${currentQuestion.coordB})</span> を結ぶ線分 ${currentQuestion.p1}${currentQuestion.p2} を <span class="text-amber-600">${currentQuestion.m} : ${currentQuestion.n}</span> に${typeText}点 <span class="text-indigo-600">${currentQuestion.targetName}</span> の座標を求めなさい。`;
+
+            if (questionCount === TOTAL_QUESTIONS) {
+                nextBtnText.textContent = "結果を見る";
+            } else {
+                nextBtnText.textContent = "次の問題へ";
+            }
+
+            renderNumberLine();
+        }
+
+        function submitAnswer() {
+            const userAns = parseInt(answerInput.value.trim(), 10);
+            if (isNaN(userAns) || isAnswered) return;
+
+            isAnswered = true;
+            const isCorrect = userAns === currentQuestion.targetCoord;
+
+            if (isCorrect) {
+                correctCount++;
+                currentStreak++;
+            } else {
+                currentStreak = 0;
+            }
+
+            scoreCorrect.textContent = `${correctCount} / ${questionCount}`;
+            scoreAccuracy.textContent = `${Math.round((correctCount / questionCount) * 100)}%`;
+            scoreStreak.textContent = `${currentStreak} 🔥`;
+
+            // 解答後は解説用に自動で数直線を表示
+            if (!isHintVisible) {
+                isHintVisible = true;
+                hintContainer.classList.remove('hidden');
+                hintBtnText.textContent = "数直線ヒントを隠す";
+            }
+            renderNumberLine();
+
+            explanationPanel.classList.remove('hidden');
+
+            if (isCorrect) {
+                feedbackHeader.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xl">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-emerald-700">正解！素晴らしいです！</div>
+                        <div class="text-xs text-slate-500">点 ${currentQuestion.targetName} の座標は ${currentQuestion.targetCoord} です。</div>
+                    </div>
+                `;
+            } else {
+                feedbackHeader.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-xl">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-rose-700">不正解！正しい座標は ${currentQuestion.targetCoord} です</div>
+                        <div class="text-xs text-slate-500">下の公式を使った計算過程を確認してみましょう。</div>
+                    </div>
+                `;
+            }
+
+            const a = currentQuestion.coordA;
+            const b = currentQuestion.coordB;
+            const m = currentQuestion.m;
+            const n = currentQuestion.n;
+            const name = currentQuestion.targetName;
+
+            if (currentQuestion.type === 'internal') {
+                const numStep = `${n}・(${a}) + ${m}・(${b})`;
+                const numCalc = `${n * a} + ${m * b}`;
+                const numSum = n * a + m * b;
+                const denSum = m + n;
+
+                explanationBody.innerHTML = `
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div class="font-bold text-slate-800 mb-3">【公式を使った計算手順】</div>
+                        
+                        <div class="bg-white p-4 rounded-xl border border-indigo-200 flex flex-wrap items-center justify-center gap-1 text-slate-800 font-extrabold text-base">
+                            <span>${name}</span>
+                            <span class="math-eq">=</span>
+                            <div class="math-frac">
+                                <span class="math-num">${numStep}</span>
+                                <span class="math-den">${m} + ${n}</span>
+                            </div>
+                            <span class="math-eq">=</span>
+                            <div class="math-frac">
+                                <span class="math-num">${numCalc}</span>
+                                <span class="math-den">${denSum}</span>
+                            </div>
+                            <span class="math-eq">=</span>
+                            <div class="math-frac">
+                                <span class="math-num">${numSum}</span>
+                                <span class="math-den">${denSum}</span>
+                            </div>
+                            <span class="math-eq">=</span>
+                            <span class="text-indigo-600 text-2xl font-black">${currentQuestion.targetCoord}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const numStep = `(-${n})・(${a}) + ${m}・(${b})`;
+                const numCalc = `${-n * a} + ${m * b}`;
+                const numSum = -n * a + m * b;
+                const denSum = m - n;
+
+                explanationBody.innerHTML = `
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div class="font-bold text-slate-800 mb-3">【公式を使った計算手順】</div>
+                        
+                        <div class="bg-white p-4 rounded-xl border border-amber-200 flex flex-wrap items-center justify-center gap-1 text-slate-800 font-extrabold text-base">
+                            <span>${name}</span>
+                            <span class="math-eq">=</span>
+                            <div class="math-frac">
+                                <span class="math-num">${numStep}</span>
+                                <span class="math-den">${m} - ${n}</span>
+                            </div>
+                            <span class="math-eq">=</span>
+                            <div class="math-frac">
+                                <span class="math-num">${numCalc}</span>
+                                <span class="math-den">${denSum}</span>
+                            </div>
+                            <span class="math-eq">=</span>
+                            <div class="math-frac">
+                                <span class="math-num">${numSum}</span>
+                                <span class="math-den">${denSum}</span>
+                            </div>
+                            <span class="math-eq">=</span>
+                            <span class="text-amber-600 text-2xl font-black">${currentQuestion.targetCoord}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            explanationPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function sendResultToGAS() {
+            if (!userInfo.name) {
+                userModal.classList.remove('hidden');
+                userModal.classList.add('flex');
+                return;
+            }
+
+            const ratePercent = Math.round((correctCount / TOTAL_QUESTIONS) * 100);
+            const scoreRateStr = `${ratePercent}% (${correctCount}/${TOTAL_QUESTIONS}問)`;
+            
+            let modeNameLabel = "内分点・外分点の座標 (";
+            if (modeSelect.value === 'internal') modeNameLabel += "内分点のみ)";
+            else if (modeSelect.value === 'external') modeNameLabel += "外分点のみ)";
+            else modeNameLabel += "ミックス)";
+
+            resultTitle.textContent = "全5問 終了！";
+            resultUserInfo.textContent = `${userInfo.grade}年 ${userInfo.classNum}組 ${userInfo.number}番  ${userInfo.name}`;
+            resultScore.textContent = `${ratePercent}%`;
+            resultDetail.textContent = `正解数：${correctCount} / ${TOTAL_QUESTIONS} 問`;
+
+            sendStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> スプレッドシートへ送信中...`;
+            sendStatus.className = "text-xs font-bold text-slate-500 my-3 flex items-center justify-center gap-2";
+
+            resultModal.classList.remove('hidden');
+            resultModal.classList.add('flex');
+
+            const payload = {
+                grade: userInfo.grade,
+                classNum: userInfo.classNum,
+                number: userInfo.number,
+                name: userInfo.name,
+                modeName: modeNameLabel,
+                scoreRate: scoreRateStr
+            };
+
+            fetch(GAS_ENDPOINT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                sendStatus.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> スプレッドシートに送信完了しました！`;
+                sendStatus.className = "text-xs font-bold text-emerald-600 my-3 flex items-center justify-center gap-2";
+            })
+            .catch(err => {
+                console.error("送信エラー:", err);
+                sendStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-500"></i> 送信に失敗しました`;
+                sendStatus.className = "text-xs font-bold text-rose-600 my-3 flex items-center justify-center gap-2";
+            });
+        }
+
+        submitBtn.addEventListener('click', submitAnswer);
+        
+        nextBtn.addEventListener('click', () => {
+            if (questionCount >= TOTAL_QUESTIONS) {
+                sendResultToGAS();
+            } else {
+                loadNewQuestion();
+            }
+        });
+
+        modeSelect.addEventListener('change', () => {
+            resetQuizState();
+        });
+
+        resultCloseBtn.addEventListener('click', () => {
+            resultModal.classList.add('hidden');
+            resetQuizState();
+        });
+
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.remove('hidden');
+            helpModal.classList.add('flex');
+        });
+        closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+        modalOkBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initUserSettingsUI();
+            resetQuizState();
+        });
+    </script>
+</body>
+</html>

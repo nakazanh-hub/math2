@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三角形の重心マスター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX (教科書風の数式表示用) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap');
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .katex-display { margin: 0.5em 0 !important; }
+        
+        /* 分数入力UI用スタイル */
+        .frac-box {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 4px;
+        }
+        .frac-input {
+            width: 44px;
+            height: 32px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            background-color: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            outline: none;
+            cursor: pointer;
+        }
+        .frac-input.active {
+            border-color: #6366f1;
+            background-color: #e0e7ff;
+        }
+        .frac-line {
+            width: 100%;
+            height: 2px;
+            background-color: #334155;
+            margin: 2px 0;
+        }
+        .coord-input-single {
+            width: 50px;
+            height: 42px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            background-color: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+        }
+        .coord-input-single.active {
+            border-color: #6366f1;
+            background-color: #e0e7ff;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-shapes text-yellow-300 text-2xl"></i>
+                <h1 class="font-bold text-lg sm:text-xl tracking-wide">三角形の重心 マスター</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="user-settings-btn" class="text-xs sm:text-sm bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-full transition flex items-center gap-1 border border-indigo-400">
+                    <i class="fa-solid fa-user-gear"></i> <span id="user-display-name">初期設定</span>
+                </button>
+                <button id="help-btn" class="text-xs sm:text-sm bg-indigo-500 hover:bg-indigo-700 px-3 py-1.5 rounded-full transition flex items-center gap-1">
+                    <i class="fa-solid fa-circle-question"></i> 公式
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-grow flex flex-col gap-6">
+
+        <!-- Scoreboard -->
+        <div class="grid grid-cols-3 gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 text-center">
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">正解数</div>
+                <div id="score-correct" class="text-2xl font-black text-indigo-600">0 / 5</div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">正解率</div>
+                <div id="score-accuracy" class="text-2xl font-black text-emerald-600">0%</div>
+            </div>
+            <div class="p-2 bg-slate-50 rounded-xl">
+                <div class="text-xs text-slate-500 font-bold">連続正解</div>
+                <div id="score-streak" class="text-2xl font-black text-amber-500">0 🔥</div>
+            </div>
+        </div>
+
+        <!-- Question Box -->
+        <div id="question-card" class="bg-white p-6 sm:p-8 rounded-3xl shadow-md border border-indigo-100 flex flex-col items-center relative">
+            
+            <div class="w-full flex justify-between items-center mb-4">
+                <span id="question-badge" class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
+                    第 1 / 5 問
+                </span>
+                
+                <!-- Toggle Plot Hint -->
+                <button id="toggle-hint-btn" class="text-xs px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold border border-amber-200 rounded-full transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-lightbulb"></i> <span id="hint-btn-text">平面図形ヒントを表示</span>
+                </button>
+            </div>
+
+            <!-- Question Text -->
+            <div class="w-full bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center my-2">
+                <div id="question-text" class="text-base sm:text-lg font-bold text-slate-800 leading-relaxed">
+                    読み込み中...
+                </div>
+            </div>
+
+            <!-- Coordinate Plane Hint Area -->
+            <div id="hint-container" class="hidden w-full bg-slate-50 rounded-2xl p-4 my-3 border border-slate-200 flex flex-col items-center pop-in">
+                <div class="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
+                    <i class="fa-solid fa-draw-polygon text-indigo-500"></i> 重心 G は 3 つの頂点の「平均」の点です！
+                </div>
+                <div class="w-full overflow-x-auto py-2 flex justify-center items-center">
+                    <div class="w-full max-w-[360px] aspect-square relative">
+                        <svg id="plane-svg" class="w-full h-full select-none" viewBox="0 0 400 400">
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Answer Input Section -->
+            <div class="w-full max-w-xs flex flex-col items-center gap-3 my-2">
+                <div class="text-sm font-bold text-slate-600 flex items-center gap-1">
+                    <i class="fa-solid fa-pen-to-square text-indigo-500"></i> 重心 G の座標を入力
+                </div>
+
+                <!-- 教科書スタイル インタラクティブ入力欄 -->
+                <div class="flex items-center justify-center gap-1.5 w-full bg-slate-100 p-3 rounded-2xl border-2 border-slate-300 text-indigo-900 font-bold text-xl min-h-[72px]">
+                    <span class="text-2xl font-black">G (</span>
+                    
+                    <!-- X 座標入力エリア -->
+                    <div id="x-field-container" class="flex items-center">
+                        <input type="text" id="input-x" class="coord-input-single active" readonly value="" placeholder="x">
+                        
+                        <div id="frac-x-box" class="frac-box hidden">
+                            <input type="text" id="input-x-num" class="frac-input" readonly value="" placeholder="分子">
+                            <div class="frac-line"></div>
+                            <input type="text" id="input-x-den" class="frac-input" readonly value="" placeholder="分母">
+                        </div>
+                    </div>
+
+                    <span class="text-2xl font-black">,</span>
+
+                    <!-- Y 座標入力エリア -->
+                    <div id="y-field-container" class="flex items-center">
+                        <input type="text" id="input-y" class="coord-input-single" readonly value="" placeholder="y">
+                        
+                        <div id="frac-y-box" class="frac-box hidden">
+                            <input type="text" id="input-y-num" class="frac-input" readonly value="" placeholder="分子">
+                            <div class="frac-line"></div>
+                            <input type="text" id="input-y-den" class="frac-input" readonly value="" placeholder="分母">
+                        </div>
+                    </div>
+
+                    <span class="text-2xl font-black">)</span>
+
+                    <button id="clear-btn" class="ml-2 p-2.5 bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold rounded-xl transition flex items-center justify-center">
+                        <i class="fa-solid fa-erase"></i>
+                    </button>
+                </div>
+
+                <div class="text-xs text-slate-400 font-bold">※「／」を押すと選択中の枠を教科書風の分数表示に切替できます</div>
+
+                <!-- Custom On-Screen Numpad -->
+                <div class="grid grid-cols-4 gap-2 w-full mt-1">
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="7">7</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="8">8</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="9">9</button>
+                    <button class="numpad-btn py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-xl text-lg transition active:scale-95" data-val="-">-</button>
+
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="4">4</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="5">5</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="6">6</button>
+                    <button class="numpad-btn py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-xl text-lg transition active:scale-95" data-val="/" title="分数切り替え">／</button>
+
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="1">1</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="2">2</button>
+                    <button class="numpad-btn py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="3">3</button>
+                    <button class="numpad-btn py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold rounded-xl text-lg transition active:scale-95" data-val="back"><i class="fa-solid fa-backspace"></i></button>
+
+                    <button class="numpad-btn col-span-2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-lg transition active:scale-95" data-val="0">0</button>
+                    <button id="next-field-btn" class="col-span-2 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 rounded-xl text-sm transition active:scale-95">次へ (y座標)</button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-4 mt-2 w-full max-w-xs">
+                <button id="submit-btn" disabled class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-black rounded-xl transition shadow-md active:scale-95 flex items-center justify-center gap-2 text-base">
+                    <i class="fa-solid fa-paper-plane"></i> 解答する
+                </button>
+            </div>
+        </div>
+
+        <!-- Explanation Panel -->
+        <div id="explanation-panel" class="hidden bg-white p-6 rounded-3xl shadow-lg border-2 border-indigo-200 pop-in">
+            <div id="feedback-header" class="flex items-center gap-3 mb-4"></div>
+            <div id="explanation-body" class="text-sm sm:text-base text-slate-700 space-y-4 leading-relaxed"></div>
+
+            <div class="mt-6 flex justify-end">
+                <button id="next-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-lg transition active:scale-95 flex items-center gap-2">
+                    <span id="next-btn-text">次の問題へ</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- User Settings Modal (初期設定モーダル) -->
+    <div id="user-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in relative">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-id-card text-indigo-600"></i> 初期設定（児童・生徒情報）
+            </h3>
+
+            <div class="space-y-4 text-sm text-slate-700">
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">年</label>
+                        <select id="select-grade" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">組</label>
+                        <select id="select-class" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 text-xs text-slate-500">出席番号</label>
+                        <select id="select-number" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-1 text-xs text-slate-500">氏名</label>
+                    <input type="text" id="input-name" placeholder="例：山田 太郎" class="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-bold focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button id="save-user-btn" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow">
+                    保存して始める
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal (結果表示＆送信モーダル) -->
+    <div id="result-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in text-center">
+            <div class="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-black">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h3 class="text-xl font-extrabold text-slate-800 mb-1">5問クリア！お疲れ様でした！</h3>
+            <p class="text-xs text-slate-500 mb-4" id="result-user-info"></p>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4">
+                <div class="text-xs font-bold text-slate-500 mb-1">正答率</div>
+                <div class="text-3xl font-black text-emerald-600" id="result-score">0%</div>
+                <div class="text-xs font-bold text-slate-600 mt-1" id="result-detail"></div>
+            </div>
+
+            <div id="send-status" class="text-xs font-bold text-slate-500 my-3 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> スプレッドシートへ送信中...
+            </div>
+
+            <button id="restart-btn" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2 text-base">
+                <i class="fa-solid fa-rotate-right"></i> もう一度挑戦する
+            </button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl pop-in relative">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-calculator text-indigo-600"></i> 三角形の重心の公式
+            </h3>
+
+            <div class="space-y-4 text-sm text-slate-600">
+                <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <p class="text-xs text-slate-600 mb-2">3点 <span id="katex-modal-p1"></span>, <span id="katex-modal-p2"></span>, <span id="katex-modal-p3"></span> を頂点とする <span id="katex-modal-tri"></span> の重心 G の座標：</p>
+                    <div class="bg-white p-3 rounded-xl border border-indigo-200 text-center text-indigo-900 text-lg overflow-x-auto my-2">
+                        <span id="katex-modal-formula"></span>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                    <div class="font-bold text-amber-900 mb-1">■ 重心とは？</div>
+                    <p class="text-xs text-slate-700 leading-relaxed">
+                        重心は 3つの頂点座標の**平均**をとることで求まります。
+                    </p>
+                </div>
+            </div>
+
+            <button id="modal-ok-btn" class="w-full mt-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition">
+                閉じる
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Google Apps Script WEB API URL
+        const GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzNzl-jIb9R-vUpLClfhBWIRFWU9IjK6PNr_TS048PYV88TtXMx0HeREBftEf0QY_VzdQ/exec";
+
+        const TOTAL_QUESTIONS = 5;
+        let currentQuestion = null;
+        let questionCount = 0;
+        let correctCount = 0;
+        let currentStreak = 0;
+        let isAnswered = false;
+        let isHintVisible = false;
+
+        // ユーザー情報オブジェクト
+        let userInfo = {
+            grade: "1",
+            classNum: "1",
+            number: "1",
+            name: ""
+        };
+
+        const SVG_NS = "http://www.w3.org/2000/svg";
+
+        // DOM Element Refs
+        const svg = document.getElementById('plane-svg');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const nextBtnText = document.getElementById('next-btn-text');
+        const questionText = document.getElementById('question-text');
+        const questionBadge = document.getElementById('question-badge');
+        const explanationPanel = document.getElementById('explanation-panel');
+        const feedbackHeader = document.getElementById('feedback-header');
+        const explanationBody = document.getElementById('explanation-body');
+        const clearBtn = document.getElementById('clear-btn');
+        const nextFieldBtn = document.getElementById('next-field-btn');
+
+        const toggleHintBtn = document.getElementById('toggle-hint-btn');
+        const hintBtnText = document.getElementById('hint-btn-text');
+        const hintContainer = document.getElementById('hint-container');
+
+        const scoreCorrect = document.getElementById('score-correct');
+        const scoreAccuracy = document.getElementById('score-accuracy');
+        const scoreStreak = document.getElementById('score-streak');
+
+        const questionCard = document.getElementById('question-card');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalOkBtn = document.getElementById('modal-ok-btn');
+
+        // ユーザー設定DOM
+        const userSettingsBtn = document.getElementById('user-settings-btn');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userModal = document.getElementById('user-modal');
+        const selectGrade = document.getElementById('select-grade');
+        const selectClass = document.getElementById('select-class');
+        const selectNumber = document.getElementById('select-number');
+        const inputName = document.getElementById('input-name');
+        const saveUserBtn = document.getElementById('save-user-btn');
+
+        // 結果モーダルDOM
+        const resultModal = document.getElementById('result-modal');
+        const resultUserInfo = document.getElementById('result-user-info');
+        const resultScore = document.getElementById('result-score');
+        const resultDetail = document.getElementById('result-detail');
+        const sendStatus = document.getElementById('send-status');
+
+        // Input Fields
+        const inputX = document.getElementById('input-x');
+        const inputY = document.getElementById('input-y');
+        const fracXBox = document.getElementById('frac-x-box');
+        const fracYBox = document.getElementById('frac-y-box');
+        const inputXNum = document.getElementById('input-x-num');
+        const inputXDen = document.getElementById('input-x-den');
+        const inputYNum = document.getElementById('input-y-num');
+        const inputYDen = document.getElementById('input-y-den');
+
+        let activeInputEl = inputX;
+        let isFracX = false;
+        let isFracY = false;
+
+        function initUserSettingsUI() {
+            selectGrade.innerHTML = [1,2,3].map(n => `<option value="${n}">${n}年</option>`).join('');
+            selectClass.innerHTML = Array.from({length: 9}, (_, i) => `<option value="${i+1}">${i+1}組</option>`).join('');
+            selectNumber.innerHTML = Array.from({length: 40}, (_, i) => `<option value="${i+1}">${i+1}番</option>`).join('');
+
+            const saved = localStorage.getItem('circle_math_user_info');
+            if (saved) {
+                userInfo = JSON.parse(saved);
+                selectGrade.value = userInfo.grade;
+                selectClass.value = userInfo.classNum;
+                selectNumber.value = userInfo.number;
+                inputName.value = userInfo.name;
+                updateUserDisplay();
+            } else {
+                userModal.classList.remove('hidden');
+                userModal.classList.add('flex');
+            }
+        }
+
+        function updateUserDisplay() {
+            if (userInfo.name) {
+                userDisplayName.textContent = `${userInfo.grade}-${userInfo.classNum} ${userInfo.name}`;
+            } else {
+                userDisplayName.textContent = "初期設定";
+            }
+        }
+
+        saveUserBtn.addEventListener('click', () => {
+            if (!inputName.value.trim()) {
+                alert("氏名を入力してください");
+                return;
+            }
+            userInfo = {
+                grade: selectGrade.value,
+                classNum: selectClass.value,
+                number: selectNumber.value,
+                name: inputName.value.trim()
+            };
+            localStorage.setItem('circle_math_user_info', JSON.stringify(userInfo));
+            updateUserDisplay();
+            userModal.classList.add('hidden');
+        });
+
+        userSettingsBtn.addEventListener('click', () => {
+            userModal.classList.remove('hidden');
+            userModal.classList.add('flex');
+        });
+
+        function setActiveInput(el) {
+            [inputX, inputY, inputXNum, inputXDen, inputYNum, inputYDen].forEach(item => item.classList.remove('active'));
+            if (el) {
+                el.classList.add('active');
+                activeInputEl = el;
+            }
+            updateSubmitBtnState();
+        }
+
+        [inputX, inputY, inputXNum, inputXDen, inputYNum, inputYDen].forEach(el => {
+            el.addEventListener('click', () => setActiveInput(el));
+        });
+
+        nextFieldBtn.addEventListener('click', () => {
+            if (activeInputEl === inputX || activeInputEl === inputXNum || activeInputEl === inputXDen) {
+                setActiveInput(isFracY ? inputYNum : inputY);
+            } else {
+                setActiveInput(isFracX ? inputXNum : inputX);
+            }
+        });
+
+        function toggleFracForActiveField() {
+            if (activeInputEl === inputX || activeInputEl === inputXNum || activeInputEl === inputXDen) {
+                isFracX = !isFracX;
+                if (isFracX) {
+                    inputX.classList.add('hidden');
+                    fracXBox.classList.remove('hidden');
+                    setActiveInput(inputXNum);
+                } else {
+                    inputX.classList.remove('hidden');
+                    fracXBox.classList.add('hidden');
+                    setActiveInput(inputX);
+                }
+            } else {
+                isFracY = !isFracY;
+                if (isFracY) {
+                    inputY.classList.add('hidden');
+                    fracYBox.classList.remove('hidden');
+                    setActiveInput(inputYNum);
+                } else {
+                    inputY.classList.remove('hidden');
+                    fracYBox.classList.add('hidden');
+                    setActiveInput(inputY);
+                }
+            }
+        }
+
+        function clearAllInputs() {
+            inputX.value = '';
+            inputY.value = '';
+            inputXNum.value = '';
+            inputXDen.value = '';
+            inputYNum.value = '';
+            inputYDen.value = '';
+            
+            isFracX = false;
+            isFracY = false;
+            inputX.classList.remove('hidden');
+            inputY.classList.remove('hidden');
+            fracXBox.classList.add('hidden');
+            fracYBox.classList.add('hidden');
+
+            setActiveInput(inputX);
+        }
+
+        function updateSubmitBtnState() {
+            let xValid = isFracX ? (inputXNum.value !== '' && inputXDen.value !== '') : inputX.value !== '';
+            let yValid = isFracY ? (inputYNum.value !== '' && inputYDen.value !== '') : inputY.value !== '';
+            submitBtn.disabled = !(xValid && yValid) || isAnswered;
+        }
+
+        // 答えが整数になる座標生成
+        function generateQuestion() {
+            let x1, y1, x2, y2, x3, y3;
+            let sumX, sumY, gx, gy;
+            let valid = false;
+
+            if (questionCount === 0) {
+                x1 = 2; y1 = -4;
+                x2 = -7; y2 = 2;
+                x3 = -1; y3 = -4;
+                sumX = x1 + x2 + x3; // -6
+                sumY = y1 + y2 + y3; // -6
+                gx = sumX / 3; // -2
+                gy = sumY / 3; // -2
+            } else {
+                while (!valid) {
+                    gx = Math.floor(Math.random() * 11) - 5;
+                    gy = Math.floor(Math.random() * 11) - 5;
+                    sumX = gx * 3;
+                    sumY = gy * 3;
+
+                    x1 = Math.floor(Math.random() * 13) - 6;
+                    y1 = Math.floor(Math.random() * 13) - 6;
+
+                    x2 = Math.floor(Math.random() * 13) - 6;
+                    y2 = Math.floor(Math.random() * 13) - 6;
+
+                    x3 = sumX - x1 - x2;
+                    y3 = sumY - y1 - y2;
+
+                    if (Math.abs(x3) <= 9 && Math.abs(y3) <= 9) {
+                        const area = (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+                        if (Math.abs(area) > 4) {
+                            valid = true;
+                        }
+                    }
+                }
+            }
+
+            return {
+                x1, y1, x2, y2, x3, y3,
+                sumX, sumY,
+                gx, gy,
+                texAnsStr: `\\left(${gx}, ${gy}\\right)`
+            };
+        }
+
+        function renderCoordinatePlane() {
+            svg.innerHTML = '';
+
+            const { x1, y1, x2, y2, x3, y3, gx, gy } = currentQuestion;
+
+            const minX = Math.min(0, x1, x2, x3, gx) - 2;
+            const maxX = Math.max(0, x1, x2, x3, gx) + 2;
+            const minY = Math.min(0, y1, y2, y3, gy) - 2;
+            const maxY = Math.max(0, y1, y2, y3, gy) + 2;
+
+            const width = 400;
+            const height = 400;
+            const margin = 40;
+
+            const toSvgX = (x) => margin + (x - minX) * ((width - 2 * margin) / (maxX - minX));
+            const toSvgY = (y) => height - (margin + (y - minY) * ((height - 2 * margin) / (maxY - minY)));
+
+            // グリッド線
+            for (let x = Math.ceil(minX); x <= Math.floor(maxX); x++) {
+                const line = document.createElementNS(SVG_NS, 'line');
+                line.setAttribute('x1', toSvgX(x));
+                line.setAttribute('y1', 10);
+                line.setAttribute('x2', toSvgX(x));
+                line.setAttribute('y2', height - 10);
+                line.setAttribute('stroke', x === 0 ? '#475569' : '#e2e8f0');
+                line.setAttribute('stroke-width', x === 0 ? '2' : '1');
+                svg.appendChild(line);
+            }
+
+            for (let y = Math.ceil(minY); y <= Math.floor(maxY); y++) {
+                const line = document.createElementNS(SVG_NS, 'line');
+                line.setAttribute('x1', 10);
+                line.setAttribute('y1', toSvgY(y));
+                line.setAttribute('x2', width - 10);
+                line.setAttribute('y2', toSvgY(y));
+                line.setAttribute('stroke', y === 0 ? '#475569' : '#e2e8f0');
+                line.setAttribute('stroke-width', y === 0 ? '2' : '1');
+                svg.appendChild(line);
+            }
+
+            // 三角形ABC
+            const polygon = document.createElementNS(SVG_NS, 'polygon');
+            const pointsStr = `${toSvgX(x1)},${toSvgY(y1)} ${toSvgX(x2)},${toSvgY(y2)} ${toSvgX(x3)},${toSvgY(y3)}`;
+            polygon.setAttribute('points', pointsStr);
+            polygon.setAttribute('fill', 'rgba(99, 102, 241, 0.1)');
+            polygon.setAttribute('stroke', '#6366f1');
+            polygon.setAttribute('stroke-width', '2.5');
+            svg.appendChild(polygon);
+
+            // 中線（補助線）
+            const midBC_x = (x2 + x3) / 2;
+            const midBC_y = (y2 + y3) / 2;
+            const median = document.createElementNS(SVG_NS, 'line');
+            median.setAttribute('x1', toSvgX(x1));
+            median.setAttribute('y1', toSvgY(y1));
+            median.setAttribute('x2', toSvgX(midBC_x));
+            median.setAttribute('y2', toSvgY(midBC_y));
+            median.setAttribute('stroke', '#a855f7');
+            median.setAttribute('stroke-width', '1.5');
+            median.setAttribute('stroke-dasharray', '3 3');
+            svg.appendChild(median);
+
+            // 頂点プロット
+            drawPointMarker(toSvgX(x1), toSvgY(y1), `A(${x1}, ${y1})`, '#4f46e5');
+            drawPointMarker(toSvgX(x2), toSvgY(y2), `B(${x2}, ${y2})`, '#4f46e5');
+            drawPointMarker(toSvgX(x3), toSvgY(y3), `C(${x3}, ${y3})`, '#4f46e5');
+
+            // 重心Gプロット
+            drawPointMarker(toSvgX(gx), toSvgY(gy), `G`, '#d97706', 8);
+        }
+
+        function drawPointMarker(x, y, label, color, radius = 5) {
+            const circle = document.createElementNS(SVG_NS, 'circle');
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            circle.setAttribute('r', radius);
+            circle.setAttribute('fill', color);
+            svg.appendChild(circle);
+
+            const text = document.createElementNS(SVG_NS, 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', y - 8);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-weight', '800');
+            text.setAttribute('font-size', '12');
+            text.setAttribute('fill', '#1e1b4b');
+            text.textContent = label;
+            svg.appendChild(text);
+        }
+
+        document.querySelectorAll('.numpad-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isAnswered || !activeInputEl) return;
+                const val = btn.getAttribute('data-val');
+                let current = activeInputEl.value;
+
+                if (val === 'back') {
+                    activeInputEl.value = current.slice(0, -1);
+                } else if (val === '/') {
+                    toggleFracForActiveField();
+                } else if (val === '-') {
+                    if (current === '') {
+                        activeInputEl.value = '-';
+                    } else if (current === '-') {
+                        activeInputEl.value = '';
+                    }
+                } else {
+                    if (current.length < 4) {
+                        activeInputEl.value = current + val;
+                    }
+                }
+
+                updateSubmitBtnState();
+            });
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (isAnswered) return;
+            clearAllInputs();
+        });
+
+        toggleHintBtn.addEventListener('click', () => {
+            isHintVisible = !isHintVisible;
+            if (isHintVisible) {
+                hintContainer.classList.remove('hidden');
+                hintBtnText.textContent = "平面図形ヒントを隠す";
+                toggleHintBtn.classList.replace('bg-amber-50', 'bg-slate-200');
+                toggleHintBtn.classList.replace('text-amber-700', 'text-slate-700');
+                renderCoordinatePlane();
+            } else {
+                hintContainer.classList.add('hidden');
+                hintBtnText.textContent = "平面図形ヒントを表示";
+                toggleHintBtn.classList.replace('bg-slate-200', 'bg-amber-50');
+                toggleHintBtn.classList.replace('text-slate-700', 'text-amber-700');
+            }
+        });
+
+        function hideHintArea() {
+            isHintVisible = false;
+            hintContainer.classList.add('hidden');
+            hintBtnText.textContent = "平面図形ヒントを表示";
+            toggleHintBtn.classList.replace('bg-slate-200', 'bg-amber-50');
+            toggleHintBtn.classList.replace('text-slate-700', 'text-amber-700');
+        }
+
+        function resetQuizState() {
+            questionCount = 0;
+            correctCount = 0;
+            currentStreak = 0;
+            scoreCorrect.textContent = "0 / 5";
+            scoreAccuracy.textContent = "0%";
+            scoreStreak.textContent = "0 🔥";
+            resultModal.classList.add('hidden');
+            questionCard.classList.remove('hidden');
+            loadNewQuestion();
+        }
+
+        function loadNewQuestion() {
+            if (questionCount >= TOTAL_QUESTIONS) {
+                showResultScreen();
+                return;
+            }
+
+            isAnswered = false;
+            clearAllInputs();
+            submitBtn.disabled = true;
+            explanationPanel.classList.add('hidden');
+            
+            hideHintArea();
+
+            currentQuestion = generateQuestion();
+            questionCount++;
+
+            questionBadge.textContent = `第 ${questionCount} / ${TOTAL_QUESTIONS} 問`;
+
+            const { x1, y1, x2, y2, x3, y3 } = currentQuestion;
+            questionText.innerHTML = `3点 <span id="katex-p1"></span>, <span id="katex-p2"></span>, <span id="katex-p3"></span> を頂点とする <span id="katex-tri"></span> の重心 G の座標を求めなさい。`;
+
+            katex.render(`A(${x1}, ${y1})`, document.getElementById('katex-p1'));
+            katex.render(`B(${x2}, ${y2})`, document.getElementById('katex-p2'));
+            katex.render(`C(${x3}, ${y3})`, document.getElementById('katex-p3'));
+            katex.render(`\\triangle ABC`, document.getElementById('katex-tri'));
+
+            if (questionCount === TOTAL_QUESTIONS) {
+                nextBtnText.textContent = "結果を見る";
+            } else {
+                nextBtnText.textContent = "次の問題へ";
+            }
+        }
+
+        function showResultScreen() {
+            if (!userInfo.name) {
+                alert("送信に必要なユーザー情報が入力されていません。初期設定を行ってください。");
+                userModal.classList.remove('hidden');
+                userModal.classList.add('flex');
+                return;
+            }
+
+            const ratePercent = Math.round((correctCount / TOTAL_QUESTIONS) * 100);
+            const scoreRateStr = `${ratePercent}% (${correctCount}/${TOTAL_QUESTIONS}問)`;
+            const modeNameStr = "三角形の重心";
+
+            resultUserInfo.textContent = `${userInfo.grade}年 ${userInfo.classNum}組 ${userInfo.number}番  ${userInfo.name}`;
+            resultScore.textContent = `${ratePercent}%`;
+            resultDetail.textContent = `正答数：${correctCount} / ${TOTAL_QUESTIONS} 問`;
+
+            sendStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> スプレッドシートへ送信中...`;
+            sendStatus.className = "text-xs font-bold text-slate-500 my-3 flex items-center justify-center gap-2";
+
+            resultModal.classList.remove('hidden');
+            resultModal.classList.add('flex');
+
+            // POSTデータ構築
+            const payload = {
+                grade: userInfo.grade,
+                classNum: userInfo.classNum,
+                number: userInfo.number,
+                name: userInfo.name,
+                modeName: modeNameStr,
+                scoreRate: scoreRateStr
+            };
+
+            // GASへデータ送信
+            fetch(GAS_ENDPOINT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                sendStatus.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> スプレッドシートに送信完了しました！`;
+                sendStatus.className = "text-xs font-bold text-emerald-600 my-3 flex items-center justify-center gap-2";
+            })
+            .catch(err => {
+                console.error("送信エラー:", err);
+                sendStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-500"></i> 送信に失敗しました（ローカル動作確認時等）`;
+                sendStatus.className = "text-xs font-bold text-rose-600 my-3 flex items-center justify-center gap-2";
+            });
+
+            // 親ウィンドウ（LMS等）へのデータ送信維持
+            if (window.parent) {
+                window.parent.postMessage({
+                    correctCount: correctCount,
+                    totalQuestions: TOTAL_QUESTIONS,
+                    accuracy: ratePercent
+                }, '*');
+            }
+        }
+
+        function parseUserCoord(isFrac, valSingle, valNum, valDen) {
+            if (isFrac) {
+                const num = parseFloat(valNum);
+                const den = parseFloat(valDen);
+                if (isNaN(num) || isNaN(den) || den === 0) return null;
+                return num / den;
+            } else {
+                const v = parseFloat(valSingle);
+                if (isNaN(v)) return null;
+                return v;
+            }
+        }
+
+        function submitAnswer() {
+            if (isAnswered) return;
+
+            const userX = parseUserCoord(isFracX, inputX.value, inputXNum.value, inputXDen.value);
+            const userY = parseUserCoord(isFracY, inputY.value, inputYNum.value, inputYDen.value);
+
+            if (userX === null || userY === null) return;
+
+            isAnswered = true;
+            
+            const isCorrect = (Math.abs(userX - currentQuestion.gx) < 0.001) && (Math.abs(userY - currentQuestion.gy) < 0.001);
+
+            if (isCorrect) {
+                correctCount++;
+                currentStreak++;
+            } else {
+                currentStreak = 0;
+            }
+
+            scoreCorrect.textContent = `${correctCount} / ${TOTAL_QUESTIONS}`;
+            scoreAccuracy.textContent = `${Math.round((correctCount / questionCount) * 100)}%`;
+            scoreStreak.textContent = `${currentStreak} 🔥`;
+
+            explanationPanel.classList.remove('hidden');
+
+            if (isCorrect) {
+                feedbackHeader.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xl">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-emerald-700">正解！素晴らしいです！</div>
+                        <div class="text-xs text-slate-500">正解: G<span id="katex-header-ans"></span></div>
+                    </div>
+                `;
+            } else {
+                feedbackHeader.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-xl">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-rose-700">不正解！</div>
+                        <div class="text-xs text-slate-500">正解は G<span id="katex-header-ans"></span> です</div>
+                    </div>
+                `;
+            }
+            katex.render(currentQuestion.texAnsStr, document.getElementById('katex-header-ans'));
+
+            const { x1, y1, x2, y2, x3, y3, sumX, sumY, gx, gy } = currentQuestion;
+            const formatVal = (v) => v < 0 ? `(${v})` : `${v}`;
+
+            explanationBody.innerHTML = `
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <div class="font-bold text-slate-800">【計算手順】</div>
+                    <div class="text-xs sm:text-sm text-slate-600 space-y-2">
+                        <div>・x座標の平均: <span id="katex-exp-x"></span></div>
+                        <div>・y座標の平均: <span id="katex-exp-y"></span></div>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded-xl border border-indigo-200 flex justify-center items-center overflow-x-auto text-indigo-900 font-extrabold text-lg my-2">
+                        <span id="katex-exp-calc"></span>
+                    </div>
+                </div>
+            `;
+
+            katex.render(`\\frac{${x1} + ${formatVal(x2)} + ${formatVal(x3)}}{3} = \\frac{${sumX}}{3} = ${gx}`, document.getElementById('katex-exp-x'));
+            katex.render(`\\frac{${y1} + ${formatVal(y2)} + ${formatVal(y3)}}{3} = \\frac{${sumY}}{3} = ${gy}`, document.getElementById('katex-exp-y'));
+            katex.render(`G\\left(\\frac{${sumX}}{3}, \\frac{${sumY}}{3}\\right) = G\\left(${gx}, ${gy}\\right)`, document.getElementById('katex-exp-calc'));
+
+            explanationPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        submitBtn.addEventListener('click', submitAnswer);
+        nextBtn.addEventListener('click', loadNewQuestion);
+        restartBtn.addEventListener('click', resetQuizState);
+
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.remove('hidden');
+            helpModal.classList.add('flex');
+
+            katex.render(`A(x_1, y_1)`, document.getElementById('katex-modal-p1'));
+            katex.render(`B(x_2, y_2)`, document.getElementById('katex-modal-p2'));
+            katex.render(`C(x_3, y_3)`, document.getElementById('katex-modal-p3'));
+            katex.render(`\\triangle ABC`, document.getElementById('katex-modal-tri'));
+            katex.render(`G\\left(\\frac{x_1 + x_2 + x_3}{3}, \\frac{y_1 + y_2 + y_3}{3}\\right)`, document.getElementById('katex-modal-formula'));
+        });
+        closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+        modalOkBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initUserSettingsUI();
+            resetQuizState();
+        });
+    </script>
+</body>
+</html>
