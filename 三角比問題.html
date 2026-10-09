@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>三角比 (sin, cos, tan) 4択クイズマスター</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- KaTeX CSS & JS (数学フォント・表記用) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #f0fdf4 100%);
+      min-height: 100vh;
+    }
+
+    .katex {
+      font-size: 1.15em;
+    }
+
+    /* 正解・不正解アニメーション */
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      70% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .animate-pop {
+      animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .shadow-soft {
+      box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body class="text-slate-700 pb-12">
+
+  <div class="max-w-2xl mx-auto px-4 py-6">
+    
+    <!-- ヘッダー -->
+    <header class="text-center mb-6">
+      <div class="inline-flex items-center justify-center p-2 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold px-4 mb-2 shadow-sm">
+        ✨ 高校数学Ⅰ 三角比をマスターしよう！
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight">
+        三角比 <span class="text-sky-500">sin</span> <span class="text-emerald-500">cos</span> <span class="text-amber-500">tan</span> クイズ
+      </h1>
+    </header>
+
+    <!-- メインコンテンツエリア -->
+    <main id="app-container" class="bg-white/90 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-soft border border-white">
+      
+      <!-- ================= 1. モード選択画面 ================= -->
+      <section id="screen-mode" class="space-y-6">
+        <div class="text-center space-y-2">
+          <h2 class="text-xl font-bold text-slate-800">学習モードを選択してください</h2>
+          <p class="text-sm text-slate-500">苦手な関数を集中して練習することもできます</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <!-- すべてモード -->
+          <button onclick="startGame('all')" class="group relative p-5 bg-gradient-to-r from-sky-400 to-blue-500 text-white rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-left overflow-hidden">
+            <div class="font-bold text-lg mb-1 flex items-center justify-between">
+              <span>🌟 すべて (ランダム)</span>
+              <span class="text-2xl group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+            <p class="text-xs text-sky-100 opacity-90">sin / cos / tan がランダムで出題されます</p>
+          </button>
+
+          <!-- sin モード -->
+          <button onclick="startGame('sin')" class="group p-5 bg-gradient-to-r from-teal-400 to-emerald-500 text-white rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-left">
+            <div class="font-bold text-lg mb-1 flex items-center justify-between">
+              <span>📐 sin（正弦）モード</span>
+              <span class="text-2xl group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+            <p class="text-xs text-emerald-100 opacity-90">$\sin A = \frac{\text{対辺}}{\text{斜辺}}$ の計算を特訓</p>
+          </button>
+
+          <!-- cos モード -->
+          <button onclick="startGame('cos')" class="group p-5 bg-gradient-to-r from-sky-400 to-cyan-500 text-white rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-left">
+            <div class="font-bold text-lg mb-1 flex items-center justify-between">
+              <span>📐 cos（余弦）モード</span>
+              <span class="text-2xl group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+            <p class="text-xs text-cyan-100 opacity-90">$\cos A = \frac{\text{底辺}}{\text{斜辺}}$ の計算を特訓</p>
+          </button>
+
+          <!-- tan モード -->
+          <button onclick="startGame('tan')" class="group p-5 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-left">
+            <div class="font-bold text-lg mb-1 flex items-center justify-between">
+              <span>📐 tan（正接）モード</span>
+              <span class="text-2xl group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+            <p class="text-xs text-amber-100 opacity-90">$\tan A = \frac{\text{対辺}}{\text{底辺}}$ の計算を特訓</p>
+          </button>
+        </div>
+
+        <!-- 補足説明カード -->
+        <div class="mt-6 p-4 bg-amber-50/80 rounded-2xl border border-amber-200/60 text-amber-900 text-xs leading-relaxed">
+          <p class="font-bold mb-1 flex items-center gap-1 text-amber-700">
+            💡 定義のおさらい ($\angle C = 90^\circ$ のとき)
+          </p>
+          <ul class="list-disc list-inside space-y-1 pl-1">
+            <li><strong>サイン ($\sin A$)</strong> = 高さ / 斜辺 (Sの筆記体イメージ)</li>
+            <li><strong>コサイン ($\cos A$)</strong> = 底辺 / 斜辺 (Cを描くイメージ)</li>
+            <li><strong>タンジェント ($\tan A$)</strong> = 高さ / 底辺 (Tの筆記体イメージ)</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ================= 2. クイズ実行画面 ================= -->
+      <section id="screen-quiz" class="hidden space-y-5">
+        <!-- 進捗バー & スコア -->
+        <div class="flex items-center justify-between text-xs sm:text-sm font-bold text-slate-500">
+          <span id="quiz-progress-text">第 1 問 / 全 8 問</span>
+          <span id="quiz-score-text" class="text-sky-600">スコア: 0 点</span>
+        </div>
+        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+          <div id="quiz-progress-bar" class="bg-gradient-to-r from-sky-400 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- 問題文 -->
+        <div class="text-center py-2">
+          <h3 id="question-text" class="text-lg sm:text-xl font-extrabold text-slate-800">
+            <!-- JavaScriptで挿入 -->
+          </h3>
+        </div>
+
+        <!-- SVG 図形表示コンテナ -->
+        <div class="bg-white rounded-2xl p-4 shadow-inner border border-slate-100 flex justify-center items-center min-h-[220px]">
+          <div id="svg-container" class="w-full max-w-[320px] flex justify-center">
+            <!-- SVGが動的に読み込まれます -->
+          </div>
+        </div>
+
+        <!-- 4択ボタン群 -->
+        <div id="options-container" class="grid grid-cols-2 gap-3 pt-2">
+          <!-- 動的生成 -->
+        </div>
+
+        <!-- フィードバック & 解説領域 -->
+        <div id="feedback-card" class="hidden p-4 rounded-2xl animate-pop border transition-all">
+          <div id="feedback-result" class="font-bold text-base mb-1"></div>
+          <div id="feedback-explanation" class="text-sm space-y-1"></div>
+          <button id="next-btn" onclick="nextQuestion()" class="mt-3 w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm rounded-xl transition-all shadow-md">
+            次の問題へ ➔
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= 3. 結果発表画面 ================= -->
+      <section id="screen-result" class="hidden text-center space-y-6 py-4">
+        <div class="inline-block p-4 bg-sky-100 text-sky-600 rounded-full mb-2">
+          🏆
+        </div>
+        <div>
+          <h2 class="text-2xl font-extrabold text-slate-800">クイズ終了！お疲れ様でした！</h2>
+          <p class="text-slate-500 text-sm mt-1">あなたの得点は...</p>
+        </div>
+
+        <div class="py-4 bg-gradient-to-br from-sky-50 to-emerald-50 rounded-2xl border border-sky-100">
+          <div id="final-score" class="text-5xl font-black text-sky-600">0 <span class="text-2xl font-bold text-slate-600">/ 0 点</span></div>
+          <p id="final-message" class="text-sm font-bold text-slate-600 mt-2">すばらしい成績です！</p>
+        </div>
+
+        <button onclick="showModeSelect()" class="w-full py-3.5 bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-600 hover:to-emerald-600 text-white font-bold rounded-2xl shadow-lg transition-all text-base">
+          もう一度挑戦する 🔄
+        </button>
+      </section>
+
+    </main>
+    
+    <!-- フッター -->
+    <footer class="text-center text-xs text-slate-400 mt-6">
+      三角比学習アプリ &copy; 2026 数学インタラクティブ教材
+    </footer>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    
+    // 添付画像の4つのパターンを表現したSVG生成関数
+    // 各図形は角Aのアーク標識、直角Cマーク、破線アークと数値ラベルを含む
+    const figureSVGMap = {
+      // 図1: AB=5, AC=4, BC=3 (標準的な直角三角形)
+      fig1: `
+        <svg viewBox="0 0 280 200" class="w-full h-auto max-h-[220px]">
+          <!-- パス: 頂点 A(30,160), C(230,160), B(230,40) -->
+          <!-- 三角形本体 -->
+          <polygon points="30,160 230,160 230,40" fill="none" stroke="#334155" stroke-width="2.5" stroke-linejoin="round"/>
+          
+          <!-- 直角記号 (C点) -->
+          <path d="M 215,160 L 215,145 L 230,145" fill="none" stroke="#334155" stroke-width="2"/>
+          
+          <!-- 角Aのアーク -->
+          <path d="M 60,160 A 30 30 0 0 0 54,146" fill="none" stroke="#334155" stroke-width="1.8"/>
+
+          <!-- 破線アーク (各辺の長さ表示用) -->
+          <!-- AC (辺4) -->
+          <path d="M 30,165 Q 130,195 230,165" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <!-- BC (辺3) -->
+          <path d="M 235,160 Q 265,100 235,40" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <!-- AB (斜辺5) -->
+          <path d="M 25,155 Q 110,70 225,35" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+          <!-- 頂点ラベル -->
+          <text x="12" y="166" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">A</text>
+          <text x="240" y="38" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">B</text>
+          <text x="240" y="175" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">C</text>
+
+          <!-- 数値ラベル -->
+          <text x="125" y="192" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">4</text>
+          <text x="256" y="105" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">3</text>
+          <text x="115" y="90" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">5</text>
+        </svg>
+      `,
+
+      // 図2: AB=13, AC=12, BC=5 (横長の傾いた直角三角形 Cが上側)
+      fig2: `
+        <svg viewBox="0 0 280 180" class="w-full h-auto max-h-[220px]">
+          <!-- A(20,135), B(250,135), C(210,40) -->
+          <polygon points="20,135 250,135 210,40" fill="none" stroke="#334155" stroke-width="2.5" stroke-linejoin="round"/>
+          
+          <!-- 直角記号 (C点: ACとBCの交点) -->
+          <path d="M 197,46 L 203,60 L 216,54" fill="none" stroke="#334155" stroke-width="2"/>
+
+          <!-- 角Aのアーク -->
+          <path d="M 50,135 A 30 30 0 0 0 46,122" fill="none" stroke="#334155" stroke-width="1.8"/>
+
+          <!-- 破線アーク -->
+          <!-- AB (斜辺13) -->
+          <path d="M 20,140 Q 135,175 250,140" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <!-- AC (辺12) -->
+          <path d="M 15,130 Q 100,50 205,35" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <!-- BC (辺5) -->
+          <path d="M 215,35 Q 255,80 255,130" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+          <!-- 頂点ラベル -->
+          <text x="5" y="142" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">A</text>
+          <text x="258" y="142" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">B</text>
+          <text x="210" y="28" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">C</text>
+
+          <!-- 数値ラベル -->
+          <text x="130" y="170" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">13</text>
+          <text x="105" y="70" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">12</text>
+          <text x="242" y="80" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">5</text>
+        </svg>
+      `,
+
+      // 図3: AB=√13, AC=3, BC=2 (縦長の直角三角形 Aが上)
+      fig3: `
+        <svg viewBox="0 0 240 210" class="w-full h-auto max-h-[220px]">
+          <!-- A(80,25), C(80,170), B(190,170) -->
+          <polygon points="80,25 80,170 190,170" fill="none" stroke="#334155" stroke-width="2.5" stroke-linejoin="round"/>
+          
+          <!-- 直角記号 (C点) -->
+          <path d="M 80,155 L 95,155 L 95,170" fill="none" stroke="#334155" stroke-width="2"/>
+
+          <!-- 角Aのアーク (上側の頂点Aにおける角) -->
+          <path d="M 80,55 A 30 30 0 0 0 97,48" fill="none" stroke="#334155" stroke-width="1.8"/>
+
+          <!-- 破線アーク -->
+          <!-- AC (辺3) -->
+          <path d="M 75,25 Q 45,95 75,170" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <!-- BC (辺2) -->
+          <path d="M 80,175 Q 135,200 190,175" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <!-- AB (斜辺√13) -->
+          <path d="M 85,20 Q 160,80 195,165" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+          <!-- 頂点ラベル -->
+          <text x="60" y="25" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">A</text>
+          <text x="198" y="180" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">B</text>
+          <text x="58" y="180" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">C</text>
+
+          <!-- 数値ラベル -->
+          <text x="32" y="105" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">3</text>
+          <text x="130" y="196" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">2</text>
+          <!-- √13のラベル (KaTeX相当をテキスト表現またはSVGで表示) -->
+          <text x="130" y="85" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">√13</text>
+        </svg>
+      `,
+
+      // 図4: AB=3, AC=2√2, BC=1 (反転したような配置)
+      fig4: `
+        <svg viewBox="0 0 280 180" class="w-full h-auto max-h-[220px]">
+          <!-- A(240,60), B(40,40), C(65,130) -->
+          <polygon points="240,60 40,40 65,130" fill="none" stroke="#334155" stroke-width="2.5" stroke-linejoin="round"/>
+          
+          <!-- 直角記号 (C点) -->
+          <path d="M 60,116 L 73,119 L 78,133" fill="none" stroke="#334155" stroke-width="2"/>
+
+          <!-- 角Aのアーク -->
+          <path d="M 210,57 A 30 30 0 0 0 216,70" fill="none" stroke="#334155" stroke-width="1.8"/>
+
+          <!-- 破線アーク -->
+          <!-- AB (斜辺3) -->
+          <path d="M 40,35 Q 140,15 240,55" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <!-- BC (辺1) -->
+          <path d="M 35,40 Q 20,85 60,135" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <!-- AC (辺2√2) -->
+          <path d="M 65,135 Q 150,130 245,65" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+          <!-- 頂点ラベル -->
+          <text x="250" y="65" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">A</text>
+          <text x="20" y="45" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">B</text>
+          <text x="55" y="152" font-family="'Times New Roman', serif" font-style="italic" font-size="20" fill="#1e293b">C</text>
+
+          <!-- 数値ラベル -->
+          <text x="135" y="28" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">3</text>
+          <text x="18" y="95" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">1</text>
+          <text x="145" y="142" font-family="'Times New Roman', serif" font-size="18" fill="#0f172a">2√2</text>
+        </svg>
+      `
+    };
+
+    // 各図形パターンに対する sin, cos, tan の問題定義
+    const rawQuestions = [
+      // 図1 パターン (AB=5, AC=4, BC=3)
+      {
+        figKey: 'fig1',
+        func: 'sin',
+        targetText: '\\sin A',
+        correct: '\\frac{3}{5}',
+        options: ['\\frac{3}{5}', '\\frac{4}{5}', '\\frac{3}{4}', '\\frac{5}{3}'],
+        exp: '$\\sin A = \\frac{\\text{対辺 BC}}{\\text{斜辺 AB}} = \\frac{3}{5}$ です。'
+      },
+      {
+        figKey: 'fig1',
+        func: 'cos',
+        targetText: '\\cos A',
+        correct: '\\frac{4}{5}',
+        options: ['\\frac{4}{5}', '\\frac{3}{5}', '\\frac{4}{3}', '\\frac{5}{4}'],
+        exp: '$\\cos A = \\frac{\\text{底辺 AC}}{\\text{斜辺 AB}} = \\frac{4}{5}$ です。'
+      },
+      {
+        figKey: 'fig1',
+        func: 'tan',
+        targetText: '\\tan A',
+        correct: '\\frac{3}{4}',
+        options: ['\\frac{3}{4}', '\\frac{4}{3}', '\\frac{3}{5}', '\\frac{4}{5}'],
+        exp: '$\\tan A = \\frac{\\text{対辺 BC}}{\\text{底辺 AC}} = \\frac{3}{4}$ です。'
+      },
+
+      // 図2 パターン (AB=13, AC=12, BC=5)
+      {
+        figKey: 'fig2',
+        func: 'sin',
+        targetText: '\\sin A',
+        correct: '\\frac{5}{13}',
+        options: ['\\frac{5}{13}', '\\frac{12}{13}', '\\frac{5}{12}', '\\frac{13}{5}'],
+        exp: '$\\,\\angle C = 90^\\circ$ より、斜辺は $AB=13$、対辺は $BC=5$ です。<br>したがって $\\sin A = \\frac{\\text{対辺}}{\\text{斜辺}} = \\frac{5}{13}$ です。'
+      },
+      {
+        figKey: 'fig2',
+        func: 'cos',
+        targetText: '\\cos A',
+        correct: '\\frac{12}{13}',
+        options: ['\\frac{12}{13}', '\\frac{5}{13}', '\\frac{12}{5}', '\\frac{13}{12}'],
+        exp: '底辺は $AC=12$、斜辺は $AB=13$ です。<br>したがって $\\cos A = \\frac{\\text{底辺}}{\\text{斜辺}} = \\frac{12}{13}$ です。'
+      },
+      {
+        figKey: 'fig2',
+        func: 'tan',
+        targetText: '\\tan A',
+        correct: '\\frac{5}{12}',
+        options: ['\\frac{5}{12}', '\\frac{12}{5}', '\\frac{5}{13}', '\\frac{12}{13}'],
+        exp: '対辺は $BC=5$、底辺は $AC=12$ です。<br>したがって $\\tan A = \\frac{\\text{対辺}}{\\text{底辺}} = \\frac{5}{12}$ です。'
+      },
+
+      // 図3 パターン (AB=√13, AC=3, BC=2)
+      {
+        figKey: 'fig3',
+        func: 'sin',
+        targetText: '\\sin A',
+        correct: '\\frac{2}{\\sqrt{13}}',
+        options: ['\\frac{2}{\\sqrt{13}}', '\\frac{3}{\\sqrt{13}}', '\\frac{2}{3}', '\\frac{\\sqrt{13}}{2}'],
+        exp: '頂点 $A$ から見た対辺は $BC=2$、斜辺は $AB=\\sqrt{13}$ です。<br>したがって $\\sin A = \\frac{2}{\\sqrt{13}}$ です。'
+      },
+      {
+        figKey: 'fig3',
+        func: 'cos',
+        targetText: '\\cos A',
+        correct: '\\frac{3}{\\sqrt{13}}',
+        options: ['\\frac{3}{\\sqrt{13}}', '\\frac{2}{\\sqrt{13}}', '\\frac{3}{2}', '\\frac{\\sqrt{13}}{3}'],
+        exp: '頂点 $A$ に隣接する底辺は $AC=3$、斜辺は $AB=\\sqrt{13}$ です。<br>したがって $\\cos A = \\frac{3}{\\sqrt{13}}$ です。'
+      },
+      {
+        figKey: 'fig3',
+        func: 'tan',
+        targetText: '\\tan A',
+        correct: '\\frac{2}{3}',
+        options: ['\\frac{2}{3}', '\\frac{3}{2}', '\\frac{2}{\\sqrt{13}}', '\\frac{3}{\\sqrt{13}}'],
+        exp: '対辺は $BC=2$、底辺は $AC=3$ です。<br>したがって $\\tan A = \\frac{2}{3}$ です。'
+      },
+
+      // 図4 パターン (AB=3, AC=2√2, BC=1)
+      {
+        figKey: 'fig4',
+        func: 'sin',
+        targetText: '\\sin A',
+        correct: '\\frac{1}{3}',
+        options: ['\\frac{1}{3}', '\\frac{2\\sqrt{2}}{3}', '\\frac{1}{2\\sqrt{2}}', '\\frac{3}{1}'],
+        exp: '$\\,\\angle C = 90^\\circ$ の直角三角形において、斜辺は $AB=3$、角Aの対辺は $BC=1$ です。<br>したがって $\\sin A = \\frac{1}{3}$ です。'
+      },
+      {
+        figKey: 'fig4',
+        func: 'cos',
+        targetText: '\\cos A',
+        correct: '\\frac{2\\sqrt{2}}{3}',
+        options: ['\\frac{2\\sqrt{2}}{3}', '\\frac{1}{3}', '\\frac{2\\sqrt{2}}{1}', '\\frac{3}{2\\sqrt{2}}'],
+        exp: '底辺は $AC=2\\sqrt{2}$、斜辺は $AB=3$ です。<br>したがって $\\cos A = \\frac{2\\sqrt{2}}{3}$ です。'
+      },
+      {
+        figKey: 'fig4',
+        func: 'tan',
+        targetText: '\\tan A',
+        correct: '\\frac{1}{2\\sqrt{2}}',
+        options: ['\\frac{1}{2\\sqrt{2}}', '\\frac{2\\sqrt{2}}{1}', '\\frac{1}{3}', '\\frac{2\\sqrt{2}}{3}'],
+        exp: '対辺は $BC=1$、底辺は $AC=2\\sqrt{2}$ です。<br>したがって $\\tan A = \\frac{1}{2\\sqrt{2}}$ です。'
+      }
+    ];
+
+    let currentQuizList = [];
+    let currentIndex = 0;
+    let score = 0;
+    let isAnswered = false;
+
+    // 数式表示 (KaTeXレンダリング)
+    function renderMath() {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+          ],
+          throwOnError: false
+        });
+      }
+    }
+
+    // 配列シャッフル関数
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // モード選択画面を表示
+    function showModeSelect() {
+      document.getElementById('screen-mode').classList.remove('hidden');
+      document.getElementById('screen-quiz').classList.add('hidden');
+      document.getElementById('screen-result').classList.add('hidden');
+    }
+
+    // ゲーム開始
+    function startGame(mode) {
+      let filtered = [];
+      if (mode === 'all') {
+        filtered = [...rawQuestions];
+      } else {
+        filtered = rawQuestions.filter(q => q.func === mode);
+      }
+
+      // 出題順をシャッフル
+      currentQuizList = shuffleArray(filtered);
+      currentIndex = 0;
+      score = 0;
+
+      document.getElementById('screen-mode').classList.add('hidden');
+      document.getElementById('screen-result').classList.add('hidden');
+      document.getElementById('screen-quiz').classList.remove('hidden');
+
+      loadQuestion();
+    }
+
+    // 問題の読み込み
+    function loadQuestion() {
+      isAnswered = false;
+      const q = currentQuizList[currentIndex];
+
+      // UI表示の更新
+      document.getElementById('quiz-progress-text').innerText = `第 ${currentIndex + 1} 問 / 全 ${currentQuizList.length} 問`;
+      document.getElementById('quiz-score-text').innerText = `スコア: ${score} 点`;
+      
+      const progressPercent = ((currentIndex) / currentQuizList.length) * 100;
+      document.getElementById('quiz-progress-bar').style.width = `${progressPercent}%`;
+
+      // 問題文設定
+      document.getElementById('question-text').innerHTML = `図の直角三角形において、$${q.targetText}$ の値を求めよ。`;
+
+      // SVG図形設定
+      document.getElementById('svg-container').innerHTML = figureSVGMap[q.figKey];
+
+      // フィードバックカードの非表示
+      const feedbackCard = document.getElementById('feedback-card');
+      feedbackCard.classList.add('hidden');
+      feedbackCard.className = "hidden p-4 rounded-2xl animate-pop border transition-all";
+
+      // 4択選択肢のシャッフルと描画
+      const optionsContainer = document.getElementById('options-container');
+      optionsContainer.innerHTML = '';
+
+      const shuffledOptions = shuffleArray(q.options);
+
+      shuffledOptions.forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.className = "quiz-opt-btn w-full py-4 px-3 bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 hover:border-sky-300 rounded-2xl font-semibold text-slate-700 shadow-sm transition-all text-center flex items-center justify-center min-h-[64px]";
+        btn.innerHTML = `$${opt}$`;
+        btn.onclick = () => checkAnswer(opt, q.correct, btn);
+        optionsContainer.appendChild(btn);
+      });
+
+      // KaTeXレンダリング
+      renderMath();
+    }
+
+    // 解答チェック
+    function checkAnswer(selectedOpt, correctOpt, selectedBtn) {
+      if (isAnswered) return;
+      isAnswered = true;
+
+      const q = currentQuizList[currentIndex];
+      const isCorrect = (selectedOpt === correctOpt);
+
+      const allBtns = document.querySelectorAll('.quiz-opt-btn');
+      allBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('cursor-not-allowed', 'opacity-70');
+      });
+
+      const feedbackCard = document.getElementById('feedback-card');
+      const feedbackResult = document.getElementById('feedback-result');
+      const feedbackExplanation = document.getElementById('feedback-explanation');
+
+      if (isCorrect) {
+        score += 10;
+        selectedBtn.classList.remove('bg-slate-50', 'border-slate-200', 'opacity-70');
+        selectedBtn.classList.add('bg-emerald-100', 'border-emerald-500', 'text-emerald-900', 'font-bold');
+
+        feedbackCard.classList.remove('hidden');
+        feedbackCard.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-900');
+        feedbackResult.innerHTML = `⭕ 正解！ (+10点)`;
+        feedbackResult.className = "font-bold text-lg text-emerald-600 mb-1 flex items-center gap-1";
+      } else {
+        selectedBtn.classList.remove('bg-slate-50', 'border-slate-200', 'opacity-70');
+        selectedBtn.classList.add('bg-rose-100', 'border-rose-400', 'text-rose-900');
+
+        // 正解のボタンをハイライト
+        allBtns.forEach(btn => {
+          if (btn.innerHTML.includes(correctOpt)) {
+            btn.classList.remove('opacity-70');
+            btn.classList.add('bg-emerald-100', 'border-emerald-500', 'text-emerald-900', 'font-bold');
+          }
+        });
+
+        feedbackCard.classList.remove('hidden');
+        feedbackCard.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-900');
+        feedbackResult.innerHTML = `❌ 残念... 正解は $${correctOpt}$ です`;
+        feedbackResult.className = "font-bold text-lg text-rose-600 mb-1 flex items-center gap-1";
+      }
+
+      feedbackExplanation.innerHTML = `<strong>【解説】</strong><br>${q.exp}`;
+      
+      // スコアのリアルタイム更新
+      document.getElementById('quiz-score-text').innerText = `スコア: ${score} 点`;
+
+      renderMath();
+    }
+
+    // 次の問題へ進む
+    function nextQuestion() {
+      currentIndex++;
+      if (currentIndex < currentQuizList.length) {
+        loadQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    // 結果発表画面
+    function showResult() {
+      document.getElementById('screen-quiz').classList.add('hidden');
+      document.getElementById('screen-result').classList.remove('hidden');
+
+      const maxScore = currentQuizList.length * 10;
+      document.getElementById('final-score').innerHTML = `${score} <span class="text-2xl font-bold text-slate-500">/ ${maxScore} 点</span>`;
+
+      const msg = document.getElementById('final-message');
+      const ratio = score / maxScore;
+      if (ratio === 1) {
+        msg.innerText = "🎉 素晴らしい！全問正解です！三角比マスター！";
+      } else if (ratio >= 0.7) {
+        msg.innerText = "👏 惜しい！あと一歩で全問正解です！";
+      } else if (ratio >= 0.4) {
+        msg.innerText = "👍 まずまずの成績です！復習してもう一度挑戦しよう！";
+      } else {
+        msg.innerText = "💪 三角比の定義（sin:対辺/斜辺, cos:底辺/斜辺, tan:対辺/底辺）を再確認してみよう！";
+      }
+    }
+
+    // 初期化（ページ読み込み時）
+    window.onload = function() {
+      renderMath();
+    };
+  </script>
+</body>
+</html>
